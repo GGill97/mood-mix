@@ -1,5 +1,5 @@
 {
-  "name": "temp-tunes",
+  "name": "mood-mix",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,18 +9,30 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@shadcn/ui": "^0.0.4",
+    "clsx": "^2.1.1",
+    "geist": "^1.3.1",
+    "lucide-react": "^0.454.0",
+    "next": "14.2.15",
+    "next-auth": "^4.24.8",
+    "openai": "^4.68.4",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.15"
+    "react-icons": "^5.3.0",
+    "spotify-web-api-node": "^5.0.2",
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "@types/spotify-web-api-node": "^5.0.11",
+    "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.15"
+    "eslint-config-next": "14.2.15",
+    "postcss": "^8",
+    "postcss-nesting": "^12.0.1",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
   }
 }

@@ -1,101 +1,255 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import CurrentWeather from "@/components/Weather/CurrentWeather";
+import MusicRecommendations from "@/components/Music/MusicRecommendations";
+import SearchBar from "@/components/Search/SearchBar";
+import useGeolocation from "@/hooks/useGeolocation";
+import {
+  FaMapMarkerAlt,
+  FaCloudSun,
+  FaMusic,
+  FaSpotify,
+  FaListUl,
+  FaSearch,
+} from "react-icons/fa";
+import MusicInsightsV2 from "@/components/MusicInsightsV2";
+
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}
+
+const SUGGESTED_CITIES = [
+  "New York",
+  "Los Angeles",
+  "Chicago",
+  "Seattle",
+  "Miami",
+];
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [location, setLocation] = useState("");
+  const [weatherDescription, setWeatherDescription] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const { isLoading, error: geoError, requestGeolocation } = useGeolocation();
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleGenresUpdate = (genres: string[]) => {
+    console.log("handleGenresUpdate called with:", genres);
+    setSelectedGenres(genres);
+    console.log("Setting genres to:", genres);
+    // Log state after update on next render
+    setTimeout(() => {
+      console.log("Updated selectedGenres:", selectedGenres);
+    }, 0);
+  };
+
+  const handleLocationClick = async () => {
+    console.log("Location button clicked");
+    setLocationError(null);
+    try {
+      const coords = await requestGeolocation();
+      console.log("Received coordinates:", coords);
+
+      if (!coords) {
+        setLocationError(
+          "Unable to get your location. Please try again or enter a city name."
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `/api/weather/reverse-geocode?lat=${coords.lat}&lon=${coords.lon}`
+      );
+      console.log("Geocode response status:", response.status);
+
+      if (!response.ok) {
+        throw new Error("Failed to get location name");
+      }
+
+      const data = await response.json();
+      console.log("Geocode response data:", data);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      console.log("Setting location to:", data.cityName);
+      setLocation(data.cityName);
+    } catch (err) {
+      console.error("Location error:", err);
+      setLocationError(
+        "Unable to determine your city. Please try entering it manually."
+      );
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    console.log("Search initiated with query:", query);
+    setLocationError(null);
+    setLocation(query);
+  };
+
+  const handleWeatherUpdate = (description: string) => {
+    console.log("Weather update received:", description);
+    setWeatherDescription(description);
+    // Log state after update on next render
+    setTimeout(() => {
+      console.log("Updated weather state:", {
+        weatherDescription,
+        location,
+        selectedGenres,
+      });
+    }, 0);
+  };
+
+  const renderWeatherAndMusic = () => {
+    console.log("renderWeatherAndMusic called with state:", {
+      location,
+      weatherDescription,
+      selectedGenres,
+      hasLocation: !!location,
+      hasWeather: !!weatherDescription,
+      genresLength: selectedGenres.length,
+    });
+
+    return (
+      <section className="w-full max-w-2xl space-y-6">
+        <CurrentWeather
+          location={location}
+          onWeatherUpdate={handleWeatherUpdate}
+        />
+        <MusicRecommendations
+          weatherDescription={weatherDescription}
+          onGenresUpdate={handleGenresUpdate}
+        />
+        {console.log("Before rendering MusicInsightsV2:", {
+          location,
+          weatherDescription,
+          selectedGenres,
+        })}
+        <MusicInsightsV2
+          location={location}
+          weather={weatherDescription}
+          genres={selectedGenres}
+        />
+      </section>
+    );
+  };
+
+  console.log("Home component render state:", {
+    location,
+    weatherDescription,
+    selectedGenres,
+    isLoading,
+    hasError: !!locationError || !!geoError,
+  });
+
+  return (
+    <main className="container mx-auto px-4 py-8 flex flex-col items-center space-y-12">
+      {/* Main Heading Section */}
+      <header className="text-center space-y-4">
+        <h1 className="text-6xl font-display font-medium text-soft-brown/90 tracking-tight">
+          Your Weather, Your Beats
+        </h1>
+        <p className="text-lg font-primary text-soft-brown/70 italic">
+          Weather-inspired melodies for your day
+        </p>
+      </header>
+
+      {/* Search Section */}
+      <section className="w-full max-w-2xl mx-auto space-y-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search for a city..."
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full px-12 py-3.5 rounded-xl bg-white/95 font-primary 
+            placeholder:text-gray-400 focus:outline-none focus:ring-2 
+            focus:ring-terracotta/30 shadow-sm"
+          />
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <div className="flex flex-wrap gap-2 justify-center">
+          {SUGGESTED_CITIES.map((city) => (
+            <button
+              key={city}
+              onClick={() => handleSearch(city)}
+              className="px-4 py-1.5 rounded-full bg-white/30 hover:bg-white/40 
+              transition-colors text-sm font-primary text-soft-brown/80"
+            >
+              {city}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={handleLocationClick}
+          disabled={isLoading}
+          className="w-full mt-2 px-6 py-3 rounded-xl bg-white/80 hover:bg-white/90 
+          transition-all duration-300 flex items-center justify-center gap-2 
+          text-soft-brown/80 font-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <FaMapMarkerAlt className="text-lg" />
+          {isLoading ? "Getting location..." : "Use My Location"}
+        </button>
+
+        {(locationError || geoError) && (
+          <p className="text-red-500 text-sm text-center mt-2">
+            {locationError || geoError}
+          </p>
+        )}
+      </section>
+
+      {/* Feature Cards */}
+      {!location && (
+        <section className="w-full max-w-4xl">
+          <div className="glass p-8 rounded-xl">
+            <div className="flex justify-center gap-6 mb-8">
+              <FaCloudSun className="text-4xl text-terracotta animate-bounce" />
+              <FaMusic className="text-4xl text-terracotta animate-bounce delay-100" />
+            </div>
+            <h2 className="text-2xl font-display text-soft-brown/90 text-center mb-4">
+              Discover Your Weather-Inspired Playlist
+            </h2>
+            <p className="text-center mb-8 text-soft-brown/70 font-primary">
+              Enter a city or use your location to get personalized music
+              recommendations based on the current weather.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FeatureCard
+                icon={<FaCloudSun />}
+                title="Real-time Weather"
+                desc="Accurate local forecasts"
+              />
+              <FeatureCard
+                icon={<FaSpotify />}
+                title="Spotify Integration"
+                desc="Curated playlists"
+              />
+              <FeatureCard
+                icon={<FaListUl />}
+                title="Smart Matches"
+                desc="Weather-matched tracks"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Weather and Music Section */}
+      {location && renderWeatherAndMusic()}
+    </main>
   );
 }
+
+const FeatureCard = ({ icon, title, desc }: FeatureCardProps) => (
+  <div className="glass p-6 rounded-xl text-center hover:scale-105 transition-all duration-300">
+    <div className="text-3xl text-terracotta mb-3">{icon}</div>
+    <h3 className="font-accent text-lg mb-2 text-soft-brown/90">{title}</h3>
+    <p className="text-sm text-soft-brown/70 font-primary">{desc}</p>
+  </div>
+);

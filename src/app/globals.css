@@ -2,26 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    font-family: theme("fontFamily.primary");
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .btn {
+    @apply font-medium rounded-lg transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-terracotta text-white hover:bg-terracotta/90;
+  }
+
+  .btn-secondary {
+    @apply bg-white/80 text-gray-800 hover:bg-white;
+  }
+
+  .glass {
+    @apply bg-white/20 backdrop-blur-md border border-white/20;
+  }
+
+  .heading-xl {
+    @apply font-display text-terracotta/90 text-6xl font-medium tracking-tight;
+  }
+
+  .heading-accent {
+    @apply font-accent font-medium tracking-wide;
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 0.8s ease-out forwards;
 }
