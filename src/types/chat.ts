@@ -31,3 +31,5 @@ export interface ChatMessage {
     isMinimized?: boolean;
     onExpand?: () => void;
   }
+
+  

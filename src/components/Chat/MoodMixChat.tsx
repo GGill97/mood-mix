@@ -1,38 +1,26 @@
 /**
  * MoodMixChat Component
  *
- * Purpose:
- * Provides an interactive chat interface for users to express their mood
- * and receive personalized music recommendations.
+ * Purpose: Provides chat interface for mood-based music recommendations
  *
- * Main Functionality:
- * 1. Handles user-assistant conversation
- * 2. Analyzes mood from user messages
- * 3. Generates music genre suggestions
- * 4. Manages chat history and display
- *
- * Flow:
- * 1. User enters mood/preference
- * 2. Message sent for analysis
- * 3. Receives and displays response
- * 4. Updates parent with genre preferences
+ * Key Functionality:
+ * 1. Chat session management (create, switch, save)
+ * 2. Message handling
+ * 3. Mood analysis and playlist generation
+ * 4. History sidebar
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { SendHorizontal, Loader2, Music } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { SendHorizontal, Loader2 } from "lucide-react";
 import { ChatMessage, MoodAnalysis, MoodMixChatProps } from "@/types/chat";
+import { ChatHeader } from "./ChatHeader";
+import { useChatPersistence } from "@/hooks/useChatPersistence";
+import { ChatHistorySidebar } from "./ChatHistorySidebar";
+import { getWelcomeMessage } from "@/constants/chat";
 
-// === CONSTANTS ===
-const WELCOME_MESSAGE: ChatMessage = {
-  role: "assistant",
-  content:
-    "Hi! I'm your music mood assistant. Tell me how you're feeling, what you're doing, or what kind of music you're in the mood for!",
-  timestamp: Date.now(),
-};
-
+// === Constants ===
 const REFRESH_KEYWORDS = ["refresh", "new playlist", "different songs"];
-
 const FALLBACK_ANALYSIS: MoodAnalysis = {
   genres: ["pop", "dance"],
   weatherMood: "clear sky",
@@ -45,30 +33,87 @@ export default function MoodMixChat({
   className = "",
   spotifyAccessToken,
 }: MoodMixChatProps) {
-  // === STATE MANAGEMENT ===
-  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  // === State Management ===
+  const {
+    sessions,
+    currentSessionId,
+    createNewSession,
+    updateSession,
+    getSession,
+    deleteSession,
+    setCurrentSessionId,
+  } = useChatPersistence();
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // === AUTO-SCROLL FUNCTIONALITY ===
-  const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      const chatContainer = messagesEndRef.current.parentElement;
-      if (chatContainer) {
-        chatContainer.scrollTo({
-          top: chatContainer.scrollHeight,
-          behavior: "smooth",
-        });
+  // === Session Management ===
+  // Load messages when session changes
+  useEffect(() => {
+    if (!currentSessionId) return;
+
+    const session = getSession(currentSessionId);
+    if (session?.messages) {
+      // Prevent unnecessary updates
+      if (JSON.stringify(messages) !== JSON.stringify(session.messages)) {
+        setMessages(session.messages);
       }
     }
+  }, [currentSessionId, getSession]); // Intentionally omit messages to prevent loops
+
+  // Save messages to session (debounced)
+  useEffect(() => {
+    if (!currentSessionId || !messages.length) return;
+
+    const timeoutId = setTimeout(() => {
+      const session = getSession(currentSessionId);
+      if (
+        session &&
+        JSON.stringify(session.messages) !== JSON.stringify(messages)
+      ) {
+        updateSession(currentSessionId, messages);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [messages, currentSessionId, updateSession, getSession]);
+
+  // === Handlers ===
+  // Create new chat
+  const handleNewChat = useCallback(() => {
+    const welcomeMessage = getWelcomeMessage();
+    setMessages([welcomeMessage]);
+    createNewSession();
+  }, [createNewSession]);
+
+  // Switch sessions
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => {
+      if (sessionId === currentSessionId) return;
+      setIsHistoryOpen(false);
+      setCurrentSessionId(sessionId);
+    },
+    [currentSessionId, setCurrentSessionId]
+  );
+
+  // Auto-scroll
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.parentElement?.scrollTo({
+        top: messagesEndRef.current.parentElement.scrollHeight,
+        behavior: "smooth",
+      });
+    });
   }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // === MOOD ANALYSIS ===
+  // === Mood Analysis ===
   const analyzeMoodAndContext = useCallback(
     async (userMessage: string) => {
       try {
@@ -89,11 +134,10 @@ export default function MoodMixChat({
         });
 
         if (!response.ok) throw new Error("Failed to analyze mood");
-
         const analysis: MoodAnalysis = await response.json();
 
         if (!analysis.genres?.length) {
-          throw new Error("No genres received from mood analysis");
+          throw new Error("No genres received");
         }
 
         onMoodAnalysis(analysis);
@@ -105,13 +149,13 @@ export default function MoodMixChat({
             content:
               analysis.response +
               (!isRefreshRequest && analysis.genres.length > 0
-                ? "\n\nWould you like me to refresh the playlist with different songs in this style? Just ask me to refresh or try something new!"
+                ? "\n\nWould you like me to refresh the playlist with different songs in this style?"
                 : ""),
             timestamp: Date.now(),
           },
         ]);
       } catch (error) {
-        console.error("Error in mood analysis:", error);
+        console.error("Error:", error);
         setMessages((prev) => [
           ...prev,
           {
@@ -130,7 +174,7 @@ export default function MoodMixChat({
     [messages, onMoodAnalysis, spotifyAccessToken]
   );
 
-  // === FORM SUBMISSION ===
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const userMessage = input.trim();
@@ -139,21 +183,24 @@ export default function MoodMixChat({
     setInput("");
     setMessages((prev) => [
       ...prev,
-      {
-        role: "user",
-        content: userMessage,
-        timestamp: Date.now(),
-      },
+      { role: "user", content: userMessage, timestamp: Date.now() },
     ]);
 
     await analyzeMoodAndContext(userMessage);
   };
 
-  // === RENDER UI ===
+  // === Render UI === [Rest of the render code remains the same]
+  // === Render UI ===
   return (
-    <Card className={`w-full h-full overflow-hidden ${className}`}>
+    <Card className={`w-full h-full overflow-hidden ${className} relative`}>
       <div className="flex flex-col h-full">
-        {/* Messages Container */}
+        <ChatHeader
+          onNewChat={handleNewChat}
+          onToggleHistory={() => setIsHistoryOpen((prev) => !prev)}
+          isHistoryOpen={isHistoryOpen}
+        />
+
+        {/* Messages Display */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {messages.map((message, index) => (
             <div
@@ -164,13 +211,13 @@ export default function MoodMixChat({
             >
               <div
                 className={`
-                max-w-[80%] p-4 rounded-2xl shadow-sm backdrop-blur-sm
-                ${
-                  message.role === "user"
-                    ? "bg-terracotta/20 text-soft-brown ml-4 rounded-br-sm"
-                    : "bg-white/80 text-soft-brown/90 mr-4 rounded-bl-sm"
-                }
-              `}
+                  max-w-[80%] p-4 rounded-2xl shadow-sm
+                  ${
+                    message.role === "user"
+                      ? "bg-terracotta/20 text-soft-brown ml-4 rounded-br-sm"
+                      : "bg-white/80 text-soft-brown/90 mr-4 rounded-bl-sm"
+                  }
+                `}
               >
                 {message.content}
                 <div
@@ -187,9 +234,10 @@ export default function MoodMixChat({
             </div>
           ))}
 
+          {/* Loading Indicator */}
           {isAnalyzing && (
             <div className="flex justify-start">
-              <div className="bg-white/80 p-4 rounded-2xl rounded-bl-sm shadow-sm backdrop-blur-sm flex items-center space-x-3 text-soft-brown/70">
+              <div className="bg-white/80 p-4 rounded-2xl rounded-bl-sm shadow-sm flex items-center space-x-3 text-soft-brown/70">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Analyzing your mood...</span>
               </div>
@@ -225,6 +273,29 @@ export default function MoodMixChat({
             </button>
           </div>
         </form>
+
+        {/* Chat History Sidebar */}
+        <div
+          className={`
+            fixed inset-y-0 right-0 z-50 transition-transform duration-300 ease-in-out
+            ${isHistoryOpen ? "translate-x-0" : "translate-x-full"}
+          `}
+        >
+          <ChatHistorySidebar
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            onSelectSession={handleSessionSelect}
+            onDeleteSession={deleteSession}
+          />
+        </div>
+
+        {/* History Backdrop */}
+        {isHistoryOpen && (
+          <div
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setIsHistoryOpen(false)}
+          />
+        )}
       </div>
     </Card>
   );
