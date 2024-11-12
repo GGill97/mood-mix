@@ -1,7 +1,47 @@
+/**
+ * MusicInsightsV2 Component
+ *
+ * Purpose:
+ * Displays AI-generated insights about music recommendations based on
+ * location, weather, and selected genres. Shows historical and cultural context.
+ *
+ * Main Functionality:
+ * 1. Fetches music insights from API
+ * 2. Provides tabbed interface for different insight types
+ *    - Music History & Cultural Context
+ *    - Weather Impact & Mood Analysis
+ * 3. Manages loading and error states
+ *
+ * Component Structure:
+ * - Card Container
+ *   - Tab Navigation
+ *   - Content Sections
+ *     - History View
+ *     - Weather View
+ *
+ * Data Flow:
+ * 1. Receives location, weather, genres as props
+ * 2. Fetches insights from API
+ * 3. Caches results to prevent duplicate fetches
+ * 4. Updates display based on active tab
+ *
+ * Features:
+ * - Tabbed navigation
+ * - Loading states
+ * - Error handling
+ * - Console logging for debugging
+ * - Responsive layout
+ *
+ * External Dependencies:
+ * - Music Insights API
+ * - UI Components from shadcn/ui
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Music, History, CloudRain, Loader2 } from "lucide-react";
 
+// === TYPE DEFINITIONS ===
 interface MusicInsightsProps {
   location: string;
   weather: string;
@@ -16,75 +56,88 @@ interface Insight {
   culturalContext?: string;
 }
 
-const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
+type TabType = "history" | "weather";
+
+// === SUB-COMPONENTS ===
+const TabButton = ({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center space-x-2 px-4 py-2 border-b-2 transition-colors ${
+      active
+        ? "border-terracotta text-terracotta"
+        : "border-transparent hover:text-terracotta/70"
+    }`}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
+const InsightSection = ({
+  title,
+  content,
+  icon,
+}: {
+  title: string;
+  content: string;
+  icon?: React.ReactNode;
+}) => (
+  <div className="bg-white/50 p-4 rounded-lg">
+    <h4 className="font-semibold mb-2 flex items-center space-x-2">
+      {icon && icon}
+      <span>{title}</span>
+    </h4>
+    <p className="text-gray-700">{content}</p>
+  </div>
+);
+
+// === MAIN COMPONENT ===
+const MusicInsightsV2: React.FC<MusicInsightsProps> = ({
+  location,
+  weather,
+  genres,
+}) => {
+  // === STATE ===
   const [insights, setInsights] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"history" | "weather">("history");
+  const [activeTab, setActiveTab] = useState<TabType>("history");
   const [lastFetchParams, setLastFetchParams] = useState<string>("");
 
+  // === DATA FETCHING ===
   const fetchInsights = useCallback(async () => {
-    console.log("Starting fetchInsights with:", {
-      location,
-      weather,
-      genres,
-      lastFetchParams,
-    });
-
     const currentParams = `${location}-${weather}-${genres.join(",")}`;
-    console.log("Checking props in MusicInsightsV2:", {
-      location,
-      weather,
-      genres,
-      locationExists: !!location,
-      weatherExists: !!weather,
-      genresLength: genres.length,
-      genresArray: Array.isArray(genres),
-    });
 
-    if (!location || !weather || !genres.length) {
-      console.log("Props check failed:", {
-        locationMissing: !location,
-        weatherMissing: !weather,
-        genresMissing: !genres.length,
-      });
-      return null;
-    }
+    if (!location || !weather || !genres.length) return null;
 
     setLoading(true);
     setError(null);
 
     try {
-      console.log("Making API request to /api/music-insights with:", {
-        location,
-        weather,
-        genres,
-      });
-
       const response = await fetch("/api/music-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ location, weather, genres }),
       });
 
-      console.log("API Response received:", {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText,
-      });
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", errorText);
         throw new Error(`Failed to fetch insights: ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log("API Success Response:", data);
       setInsights(data);
       setLastFetchParams(currentParams);
     } catch (err) {
-      console.error("Error in fetchInsights:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
@@ -92,18 +145,12 @@ const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
   }, [location, weather, genres, lastFetchParams]);
 
   useEffect(() => {
-    console.log("useEffect triggered with:", {
-      location,
-      weather,
-      genresLength: genres.length,
-    });
-
     if (location && weather && genres.length > 0) {
-      console.log("Calling fetchInsights from useEffect");
       fetchInsights();
     }
   }, [fetchInsights]);
 
+  // === RENDER HELPERS ===
   const renderLoadingState = () => (
     <div className="flex items-center justify-center p-8 space-x-2">
       <Loader2 className="animate-spin" />
@@ -118,93 +165,40 @@ const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
     </div>
   );
 
-  const renderContent = () => {
-    if (!insights) {
-      console.log("No insights available to render");
-      return null;
-    }
+  const renderHistoryTab = () => (
+    <div className="space-y-4">
+      <InsightSection
+        title="Local Music History"
+        content={insights?.historyFact || ""}
+        icon={<Music className="w-4 h-4" />}
+      />
+      {insights?.culturalContext && (
+        <InsightSection
+          title="Cultural Context"
+          content={insights.culturalContext}
+        />
+      )}
+    </div>
+  );
 
-    console.log("Rendering insights:", insights);
+  const renderWeatherTab = () => (
+    <div className="space-y-4">
+      <InsightSection
+        title="Weather & Music Analysis"
+        content={insights?.moodAnalysis || ""}
+        icon={<CloudRain className="w-4 h-4" />}
+      />
+      {insights?.weatherImpact && (
+        <InsightSection
+          title="Weather Impact"
+          content={insights.weatherImpact}
+        />
+      )}
+    </div>
+  );
 
-    return (
-      <div className="space-y-6">
-        {/* Tab Navigation */}
-        <div className="flex space-x-4 border-b">
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`flex items-center space-x-2 px-4 py-2 border-b-2 transition-colors ${
-              activeTab === "history"
-                ? "border-terracotta text-terracotta"
-                : "border-transparent hover:text-terracotta/70"
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>Music History</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("weather")}
-            className={`flex items-center space-x-2 px-4 py-2 border-b-2 transition-colors ${
-              activeTab === "weather"
-                ? "border-terracotta text-terracotta"
-                : "border-transparent hover:text-terracotta/70"
-            }`}
-          >
-            <CloudRain className="w-4 h-4" />
-            <span>Weather & Mood</span>
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-4">
-          {activeTab === "history" ? (
-            <div className="space-y-4">
-              <div className="bg-white/50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center space-x-2">
-                  <Music className="w-4 h-4" />
-                  <span>Local Music History</span>
-                </h4>
-                <p className="text-gray-700">{insights.historyFact}</p>
-              </div>
-              {insights.culturalContext && (
-                <div className="bg-white/50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Cultural Context</h4>
-                  <p className="text-gray-700">{insights.culturalContext}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-white/50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center space-x-2">
-                  <CloudRain className="w-4 h-4" />
-                  <span>Weather & Music Analysis</span>
-                </h4>
-                <p className="text-gray-700">{insights.moodAnalysis}</p>
-              </div>
-              {insights.weatherImpact && (
-                <div className="bg-white/50 p-4 rounded-lg">
-                  <h4 className="font-semibold mb-2">Weather Impact</h4>
-                  <p className="text-gray-700">{insights.weatherImpact}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  console.log("MusicInsightsV2 render state:", {
-    hasLocation: !!location,
-    hasWeather: !!weather,
-    genresLength: genres.length,
-    isLoading: loading,
-    hasError: !!error,
-    hasInsights: !!insights,
-  });
-
+  // === RENDER CONDITIONS ===
   if (loading) {
-    console.log("Rendering loading state");
     return (
       <Card className="w-full mt-4">
         <CardContent>{renderLoadingState()}</CardContent>
@@ -213,7 +207,6 @@ const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
   }
 
   if (error) {
-    console.log("Rendering error state:", error);
     return (
       <Card className="w-full mt-4 border-red-200">
         <CardContent>{renderErrorState()}</CardContent>
@@ -222,10 +215,10 @@ const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
   }
 
   if (!location || !weather || !genres.length) {
-    console.log("Missing required props, not rendering");
     return null;
   }
 
+  // === MAIN RENDER ===
   return (
     <Card className="w-full mt-4">
       <CardHeader>
@@ -234,7 +227,30 @@ const MusicInsightsV2 = ({ location, weather, genres }: MusicInsightsProps) => {
           <span>AI Music Insights</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>{renderContent()}</CardContent>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Tab Navigation */}
+          <div className="flex space-x-4 border-b">
+            <TabButton
+              active={activeTab === "history"}
+              onClick={() => setActiveTab("history")}
+              icon={<History className="w-4 h-4" />}
+              label="Music History"
+            />
+            <TabButton
+              active={activeTab === "weather"}
+              onClick={() => setActiveTab("weather")}
+              icon={<CloudRain className="w-4 h-4" />}
+              label="Weather & Mood"
+            />
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-4">
+            {activeTab === "history" ? renderHistoryTab() : renderWeatherTab()}
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 };
