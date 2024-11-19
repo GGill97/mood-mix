@@ -101,3 +101,54 @@
 .animate-fadeUp {
   animation: fadeUp 0.8s ease-out forwards;
 }
+@layer components {
+  .glass {
+    @apply bg-white/20 backdrop-blur-md border border-white/20 shadow-sm transition-all duration-300;
+  }
+
+  .glass:hover {
+    @apply shadow-md bg-white/25;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(159, 98, 69, 0.2) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-terracotta/20 rounded-full hover:bg-terracotta/30 transition-colors;
+  }
+
+  .tab-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  .weather-card {
+    @apply h-full flex flex-col;
+  }
+
+  .weather-content {
+    @apply flex-1 overflow-hidden;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}

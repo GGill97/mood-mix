@@ -13,7 +13,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-gradient-to-br from-sandy-beige to-terracotta flex flex-col">
         <Providers>
           <Header />
-          {children}
+          <main className="flex-1 flex flex-col">{children}</main>
           <Footer />
         </Providers>
       </body>

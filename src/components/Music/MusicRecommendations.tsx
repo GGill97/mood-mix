@@ -41,7 +41,6 @@ import { FaSpotify, FaPlay, FaPause, FaSync } from "react-icons/fa";
 import { useMusic } from "@/hooks/useMusic";
 import { createPlaylist } from "@/utils/spotifyApi";
 
-// === TYPE DEFINITIONS ===
 interface MusicRecommendationsProps {
   weatherDescription?: string;
   moodGenres?: string[];
@@ -73,7 +72,6 @@ interface SpotifySession {
 
 type PlaylistStatus = "idle" | "creating" | "success" | "error";
 
-// === SUB-COMPONENTS ===
 interface TrackItemProps {
   track: Track;
   isCurrentlyPlaying: boolean;
@@ -116,8 +114,8 @@ const TrackItem: React.FC<TrackItemProps> = ({
     <div className="bg-white/10 p-4 rounded-lg hover:bg-white/20 transition-colors">
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <h3 className="font-medium">{track.name}</h3>
-          <p className="text-sm opacity-75">
+          <h3 className="font-medium text-soft-brown">{track.name}</h3>
+          <p className="text-sm text-soft-brown/75">
             {track.artists.map((artist) => artist.name).join(", ")}
           </p>
         </div>
@@ -136,7 +134,7 @@ const TrackItem: React.FC<TrackItemProps> = ({
               onClick={handleSpotifyClick}
               className="p-2 rounded-full bg-terracotta/20 hover:bg-terracotta/30 
                        transition-colors flex items-center justify-center 
-                       text-soft-brown/80 group"
+                       text-soft-brown group"
               title="Listen on Spotify"
             >
               <FaSpotify className="group-hover:scale-110 transition-transform" />
@@ -157,7 +155,6 @@ const TrackItem: React.FC<TrackItemProps> = ({
   );
 };
 
-// === HELPER FUNCTIONS ===
 const WEATHER_GENRE_MAP: Record<string, string[]> = {
   "clear sky": ["pop", "summer", "dance"],
   "broken clouds": ["indie", "rock", "chill"],
@@ -175,31 +172,26 @@ const mapWeatherToGenres = (weather: string): string[] => {
   return WEATHER_GENRE_MAP[normalizedWeather] || WEATHER_GENRE_MAP.default;
 };
 
-// === MAIN COMPONENT ===
 export default function MusicRecommendations({
   weatherDescription,
   moodGenres,
   displayTitle,
 }: MusicRecommendationsProps): JSX.Element {
-  // State
   const [currentTitle, setCurrentTitle] = useState(displayTitle);
   const [playlistStatus, setPlaylistStatus] = useState<PlaylistStatus>("idle");
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(
     null
   );
 
-  // Session
   const { data: session, status } = useSession();
   const spotifySession = session as unknown as SpotifySession;
 
-  // Derived values
   const genres = React.useMemo(() => {
     if (moodGenres?.length) return moodGenres;
     if (weatherDescription) return mapWeatherToGenres(weatherDescription);
     return WEATHER_GENRE_MAP.default;
   }, [moodGenres, weatherDescription]);
 
-  // Music data
   const {
     tracks,
     error,
@@ -207,7 +199,6 @@ export default function MusicRecommendations({
     refetch: refetchTracks,
   } = useMusic(genres, spotifySession?.accessToken);
 
-  // Effects
   useEffect(() => {
     if (displayTitle?.trim()) {
       setCurrentTitle(displayTitle);
@@ -225,7 +216,6 @@ export default function MusicRecommendations({
     setCurrentlyPlayingId(null);
   }, [weatherDescription, moodGenres]);
 
-  // Handlers
   const handlePlayPause = (trackId: string) => {
     setCurrentlyPlayingId((current) => (current === trackId ? null : trackId));
   };
@@ -271,12 +261,13 @@ export default function MusicRecommendations({
     }
   };
 
-  // === RENDER CONDITIONS ===
   if (status === "loading" || isLoading) {
     return (
-      <div className="glass p-6 rounded-xl text-center">
+      <div className="p-6 text-center">
         <div className="animate-pulse">
-          <p className="text-lg text-gray-600">Loading recommendations...</p>
+          <p className="text-lg text-soft-brown/70">
+            Loading recommendations...
+          </p>
         </div>
       </div>
     );
@@ -284,11 +275,13 @@ export default function MusicRecommendations({
 
   if (!spotifySession || spotifySession.error === "RefreshAccessTokenError") {
     return (
-      <div className="glass p-6 rounded-xl text-center space-y-4">
-        <h3 className="text-xl font-medium mb-4">Connect to Spotify</h3>
+      <div className="p-6 text-center space-y-4">
+        <h3 className="text-xl font-medium text-soft-brown mb-4">
+          Connect to Spotify
+        </h3>
         <button
           onClick={() => void signIn("spotify")}
-          className="btn btn-primary w-full py-3 flex items-center justify-center gap-2"
+          className="btn btn-primary w-full py-3 flex items-center justify-center gap-2 text-soft-brown"
         >
           <FaSpotify className="text-xl" />
           Connect with Spotify
@@ -299,16 +292,15 @@ export default function MusicRecommendations({
 
   if (error) {
     return (
-      <div className="glass p-6 rounded-xl text-center text-red-500">
+      <div className="p-6 text-center text-red-500">
         <p>Error loading recommendations. Please try again.</p>
       </div>
     );
   }
 
-  // === MAIN RENDER ===
   return (
-    <div className="glass p-6 rounded-xl">
-      <h2 className="text-2xl font-bold mb-6">
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6 text-soft-brown">
         {currentTitle ||
           (weatherDescription
             ? `Weather-Inspired ${mapWeatherToGenres(weatherDescription).join(
@@ -319,7 +311,7 @@ export default function MusicRecommendations({
 
       {tracks?.length ? (
         <>
-          <div className="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
+          <div className="space-y-4 mb-6 max-h-96 overflow-y-auto custom-scrollbar pr-2">
             {tracks.map((track: Track) => (
               <TrackItem
                 key={track.id}
@@ -336,7 +328,7 @@ export default function MusicRecommendations({
               disabled={isLoading}
               className="btn btn-secondary flex items-center justify-center gap-2 
                        px-4 py-3 rounded-xl bg-white/20 hover:bg-white/30 
-                       transition-colors"
+                       transition-colors text-soft-brown"
             >
               <FaSync className={isLoading ? "animate-spin" : ""} />
               Refresh
@@ -348,7 +340,7 @@ export default function MusicRecommendations({
               className="flex-1 py-3 flex items-center justify-center gap-2 
                        rounded-xl bg-terracotta/20 hover:bg-terracotta/30 
                        transition-colors disabled:opacity-50 
-                       disabled:cursor-not-allowed"
+                       disabled:cursor-not-allowed text-soft-brown"
             >
               <FaSpotify className="text-xl" />
               {playlistStatus === "creating"
@@ -369,7 +361,9 @@ export default function MusicRecommendations({
           )}
         </>
       ) : (
-        <p className="text-center text-gray-500">No recommendations found.</p>
+        <p className="text-center text-soft-brown/70">
+          No recommendations found.
+        </p>
       )}
     </div>
   );

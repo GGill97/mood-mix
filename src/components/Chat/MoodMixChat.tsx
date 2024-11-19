@@ -2,12 +2,12 @@
  * MoodMixChat Component
  *
  * Purpose: Provides chat interface for mood-based music recommendations
- *
- * Key Functionality:
- * 1. Chat session management (create, switch, save)
- * 2. Message handling
- * 3. Mood analysis and playlist generation
- * 4. History sidebar
+
+Manages a chat interface where users can discuss their mood
+Analyzes user messages to recommend music based on mood
+Handles chat history and sessions
+Provides features like creating new chats and viewing chat history
+Uses a persistent storage system for chat sessions
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -192,111 +192,110 @@ export default function MoodMixChat({
   // === Render UI === [Rest of the render code remains the same]
   // === Render UI ===
   return (
-    <Card className={`w-full h-full overflow-hidden ${className} relative`}>
-      <div className="flex flex-col h-full">
-        <ChatHeader
-          onNewChat={handleNewChat}
-          onToggleHistory={() => setIsHistoryOpen((prev) => !prev)}
-          isHistoryOpen={isHistoryOpen}
-        />
+    <div className={`w-full h-full flex flex-col ${className}`}>
+      <ChatHeader
+        onNewChat={handleNewChat}
+        onToggleHistory={() => setIsHistoryOpen((prev) => !prev)}
+        isHistoryOpen={isHistoryOpen}
+      />
 
-        {/* Messages Display */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-          {messages.map((message, index) => (
-            <div
-              key={`${message.timestamp}-${index}`}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`
-                  max-w-[80%] p-4 rounded-2xl shadow-sm
-                  ${
-                    message.role === "user"
-                      ? "bg-terracotta/20 text-soft-brown ml-4 rounded-br-sm"
-                      : "bg-white/80 text-soft-brown/90 mr-4 rounded-bl-sm"
-                  }
-                `}
-              >
-                {message.content}
-                <div
-                  className={`text-xs mt-1 opacity-50 ${
-                    message.role === "user" ? "text-right" : "text-left"
-                  }`}
-                >
-                  {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Loading Indicator */}
-          {isAnalyzing && (
-            <div className="flex justify-start">
-              <div className="bg-white/80 p-4 rounded-2xl rounded-bl-sm shadow-sm flex items-center space-x-3 text-soft-brown/70">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Analyzing your mood...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 bg-white/5 border-t border-terracotta/10"
-        >
-          <div className="relative">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell me about your mood or what you're doing..."
-              className="w-full px-4 py-3 pr-12 rounded-xl bg-white/95 
-                     placeholder:text-gray-400 focus:outline-none focus:ring-2 
-                     focus:ring-terracotta/30 shadow-sm text-soft-brown"
-              disabled={isAnalyzing}
-            />
-            <button
-              type="submit"
-              disabled={isAnalyzing || !input.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-lg
-                      bg-terracotta/20 hover:bg-terracotta/30 
-                      transition-all duration-200 disabled:opacity-50 text-soft-brown"
-            >
-              <SendHorizontal className="w-5 h-5" />
-            </button>
-          </div>
-        </form>
-
-        {/* Chat History Sidebar */}
-        <div
-          className={`
-            fixed inset-y-0 right-0 z-50 transition-transform duration-300 ease-in-out
-            ${isHistoryOpen ? "translate-x-0" : "translate-x-full"}
-          `}
-        >
-          <ChatHistorySidebar
-            sessions={sessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSessionSelect}
-            onDeleteSession={deleteSession}
-          />
-        </div>
-
-        {/* History Backdrop */}
-        {isHistoryOpen && (
+      {/* Messages Display */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {messages.map((message, index) => (
           <div
-            className="fixed inset-0 bg-black/20 z-40"
-            onClick={() => setIsHistoryOpen(false)}
-          />
+            key={`${message.timestamp}-${index}`}
+            className={`flex ${
+              message.role === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`
+                max-w-[80%] p-4 rounded-2xl shadow-sm
+                ${
+                  message.role === "user"
+                    ? "bg-terracotta/20 text-soft-brown ml-4 rounded-br-sm"
+                    : "bg-white/80 text-soft-brown/90 mr-4 rounded-bl-sm"
+                }
+              `}
+            >
+              {message.content}
+              <div
+                className={`text-xs mt-1 opacity-50 ${
+                  message.role === "user" ? "text-right" : "text-left"
+                }`}
+              >
+                {new Date(message.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Loading Indicator */}
+        {isAnalyzing && (
+          <div className="flex justify-start">
+            <div className="bg-white/80 p-4 rounded-2xl rounded-bl-sm shadow-sm flex items-center space-x-3 text-soft-brown/70">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Analyzing your mood...</span>
+            </div>
+          </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
-    </Card>
+
+      {/* Input Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="p-4 bg-white/5 border-t border-terracotta/10"
+      >
+        <div className="relative">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Tell me about your mood or what you're doing..."
+            className="w-full px-4 py-3 pr-12 rounded-xl bg-white/95 
+                   placeholder:text-gray-400 focus:outline-none focus:ring-2 
+                   focus:ring-terracotta/30 shadow-sm text-soft-brown"
+            disabled={isAnalyzing}
+          />
+          <button
+            data-testid="send-button"
+            type="submit"
+            disabled={isAnalyzing || !input.trim()}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-lg
+                    bg-terracotta/20 hover:bg-terracotta/30 
+                    transition-all duration-200 disabled:opacity-50 text-soft-brown"
+          >
+            <SendHorizontal className="w-5 h-5" />
+          </button>
+        </div>
+      </form>
+
+      {/* Chat History Sidebar */}
+      <div
+        className={`
+          fixed inset-y-0 right-0 z-50 transition-transform duration-300 ease-in-out
+          ${isHistoryOpen ? "translate-x-0" : "translate-x-full"}
+        `}
+      >
+        <ChatHistorySidebar
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={handleSessionSelect}
+          onDeleteSession={deleteSession}
+        />
+      </div>
+
+      {/* History Backdrop */}
+      {isHistoryOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 z-40"
+          onClick={() => setIsHistoryOpen(false)}
+        />
+      )}
+    </div>
   );
 }

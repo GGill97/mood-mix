@@ -16,7 +16,7 @@ export function ChatHeader({
   sessionDate,
 }: ChatHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-terracotta/10 bg-white/5">
+    <div className="flex items-center justify-between p-4 border-b border-terracotta/10 bg-white/5">
       {/* Left side */}
       <div className="flex items-center gap-2">
         <span className="text-soft-brown/70 text-sm">MoodMix Chat</span>
@@ -25,6 +25,7 @@ export function ChatHeader({
       {/* Right side - Actions */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={onNewChat}
           className="flex items-center gap-1.5 text-soft-brown/70 hover:text-soft-brown
                      transition-colors text-sm"
@@ -34,6 +35,7 @@ export function ChatHeader({
         </button>
 
         <button
+          type="button"
           onClick={onToggleHistory}
           className={`p-1.5 rounded-lg transition-colors text-soft-brown/70 
                      hover:text-soft-brown ${
@@ -51,3 +53,14 @@ export function ChatHeader({
     </div>
   );
 }
+
+/*
+  ✓ renders header with title and buttons (20 ms)
+    ✓ calls onNewChat when New Chat button is clicked (4 ms)
+    ✓ shows History icon when history is closed (3 ms)
+    ✓ shows X icon when history is open (1 ms)
+    ✓ calls onToggleHistory when history button is clicked (2 ms)
+    ✓ handles optional session date prop (2 ms)
+    ✓ provides accessible buttons (2 ms)
+    ✓ reflects history state in button appearance (2 ms)
+*/

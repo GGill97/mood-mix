@@ -1,24 +1,36 @@
 /**
  * WeatherMusicSection Component
  *
- * Purpose:
- * - Manages tabbed interface between chat and insights
- * - Controls main layout and content switching
- * - Handles notifications for new insights
+ * FUNCTIONALITY:
+ * 1. Displays weather info and chat interface in a grid layout
+ * 2. Manages tab switching between chat and insights
+ * 3. Handles notifications for new insights
+ * 4. Shows music recommendations based on weather/mood
  *
- * Flow:
+ * COMPONENT STRUCTURE:
+ * - Main Grid Container
+ *   |- Left Column
+ *      |- Tab Buttons
+ *      |- Content Area (Chat/Insights)
+ *   |- Right Column
+ *      |- Spacer (for tab alignment)
+ *      |- Weather Display
+ *   |- Full Width Bottom
+ *      |- Music Recommendations
+ *
+ * FLOW:
  * 1. User sees chat tab by default
- * 2. After mood analysis, AI Insights tab subtly pulses
- * 3. User can freely switch between tabs
- * 4. Notification clears when insights are viewed
+ * 2. Can switch to AI Insights after analysis
+ * 3. Weather display stays constant
+ * 4. Music recommendations update based on analysis
  */
 
 import React, { useState, useEffect } from "react";
+import { Music, MessageSquare } from "lucide-react";
 import MoodMixChat from "../Chat/MoodMixChat";
 import CurrentWeather from "../Weather/CurrentWeather";
 import MusicInsightsV2 from "../MusicInsightsV2";
 import MusicRecommendations from "../Music/MusicRecommendations";
-import { Music, MessageSquare } from "lucide-react";
 
 interface WeatherMusicSectionProps {
   location: string;
@@ -32,7 +44,44 @@ interface WeatherMusicSectionProps {
   showMusicInsights: boolean;
 }
 
-export const WeatherMusicSection = ({
+interface TabButtonProps {
+  id: "chat" | "insights";
+  label: string;
+  icon: React.ComponentType;
+  hasNotification?: boolean;
+  onClick: () => void;
+  isActive: boolean;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({
+  id,
+  label,
+  icon: Icon,
+  hasNotification,
+  onClick,
+  isActive,
+}) => (
+  <button
+    onClick={onClick}
+    className={`
+      flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300
+      ${
+        isActive
+          ? "bg-white/10 text-terracotta border-b-2 border-terracotta"
+          : "text-soft-brown/80 hover:bg-white/5"
+      }
+      ${hasNotification ? "animate-subtle-pulse" : ""}
+    `}
+  >
+    <Icon className="h-4 w-4" />
+    <span className="text-sm font-medium">{label}</span>
+    {hasNotification && (
+      <span className="w-2 h-2 rounded-full bg-terracotta animate-ping opacity-75" />
+    )}
+  </button>
+);
+
+export const WeatherMusicSection: React.FC<WeatherMusicSectionProps> = ({
   location,
   weatherDescription,
   moodGenres,
@@ -42,19 +91,16 @@ export const WeatherMusicSection = ({
   onMoodAnalysis,
   onWeatherUpdate,
   showMusicInsights,
-}: WeatherMusicSectionProps) => {
-  // === STATE MANAGEMENT ===
+}) => {
   const [activeTab, setActiveTab] = useState<"chat" | "insights">("chat");
   const [hasNewInsights, setHasNewInsights] = useState(false);
 
-  // Clear notification when viewing insights
   useEffect(() => {
     if (activeTab === "insights") {
       setHasNewInsights(false);
     }
   }, [activeTab]);
 
-  // Handle new insights after mood analysis
   const handleMoodAnalysis = (analysis: any) => {
     onMoodAnalysis(analysis);
     if (analysis.genres?.length > 0) {
@@ -62,102 +108,81 @@ export const WeatherMusicSection = ({
     }
   };
 
-  // === TAB BUTTON COMPONENT ===
-  const TabButton = ({
-    id,
-    label,
-    icon: Icon,
-    hasNotification,
-  }: {
-    id: "chat" | "insights";
-    label: string;
-    icon: any;
-    hasNotification?: boolean;
-  }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={`
-        flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300
-        ${
-          activeTab === id
-            ? "bg-white/10 text-terracotta border-b border-terracotta/20"
-            : "text-soft-brown/80 hover:bg-white/5"
-        }
-        ${hasNotification && id === "insights" ? "animate-subtle-pulse" : ""}
-      `}
-    >
-      <Icon className="h-4 w-4" />
-      <span className="text-sm">{label}</span>
-      {hasNotification && (
-        <span className="w-2 h-2 rounded-full bg-terracotta animate-ping opacity-75" />
-      )}
-    </button>
-  );
-
   return (
-    <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left Column - Chat and Insights */}
-      <div className="space-y-4">
-        {/* Tab Navigation */}
-        <div className="flex gap-2">
-          <TabButton id="chat" label="Chat" icon={MessageSquare} />
-          {showMusicInsights && (
+    <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div>
+          {/* Tab Navigation */}
+          <div className="h-[52px] flex gap-2 items-center">
             <TabButton
-              id="insights"
-              label="AI Insights"
-              icon={Music}
-              hasNotification={hasNewInsights}
+              id="chat"
+              label="Chat"
+              icon={MessageSquare}
+              onClick={() => setActiveTab("chat")}
+              isActive={activeTab === "chat"}
             />
-          )}
-        </div>
-
-        {/* Content Container */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl overflow-hidden">
-          {/* Chat Tab */}
-          <div
-            className={`
-            transition-all duration-300 ease-in-out
-            ${activeTab === "chat" ? "block" : "hidden"}
-          `}
-          >
-            <MoodMixChat
-              onMoodAnalysis={handleMoodAnalysis}
-              className="h-[400px]"
-              spotifyAccessToken={spotifyAccessToken}
-            />
+            {showMusicInsights && (
+              <TabButton
+                id="insights"
+                label="AI Insights"
+                icon={Music}
+                onClick={() => setActiveTab("insights")}
+                isActive={activeTab === "insights"}
+                hasNotification={hasNewInsights}
+              />
+            )}
           </div>
 
-          {/* Insights Tab */}
-          <div
-            className={`
-            transition-all duration-300 ease-in-out
-            ${activeTab === "insights" ? "block" : "hidden"}
-          `}
-          >
-            {showMusicInsights && (
-              <div className="h-[400px] overflow-y-auto custom-scrollbar">
-                <MusicInsightsV2
-                  location={location}
-                  weather={weatherDescription}
-                  genres={selectedGenres}
-                />
-              </div>
+          {/* Content Box */}
+          <div className="glass h-[420px] rounded-xl overflow-hidden">
+            {activeTab === "chat" ? (
+              <MoodMixChat
+                onMoodAnalysis={handleMoodAnalysis}
+                spotifyAccessToken={spotifyAccessToken}
+                className="h-full"
+              />
+            ) : (
+              showMusicInsights && (
+                <div className="h-full overflow-y-auto p-6">
+                  <MusicInsightsV2
+                    location={location}
+                    weather={weatherDescription}
+                    genres={selectedGenres}
+                  />
+                </div>
+              )
             )}
           </div>
         </div>
-      </div>
 
-      {/* Right Column - Weather and Music */}
-      <div className="space-y-6">
-        <CurrentWeather location={location} onWeatherUpdate={onWeatherUpdate} />
-        <MusicRecommendations
-          weatherDescription={weatherDescription}
-          moodGenres={moodGenres}
-          displayTitle={displayTitle}
-        />
+        {/* Right Column */}
+        <div>
+          {/* Spacing to match tab height */}
+          <div className="h-[52px]" />
+
+          {/* Weather Box */}
+          <div className="glass h-[420px] rounded-xl overflow-hidden">
+            <div className="h-full p-6">
+              <CurrentWeather
+                location={location}
+                onWeatherUpdate={onWeatherUpdate}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Music Recommendations */}
+        <div className="lg:col-span-2">
+          <div className="glass rounded-xl">
+            <MusicRecommendations
+              weatherDescription={weatherDescription}
+              moodGenres={moodGenres}
+              displayTitle={displayTitle}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
 };
-
-export default WeatherMusicSection;
