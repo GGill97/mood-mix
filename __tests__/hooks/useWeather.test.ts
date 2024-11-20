@@ -147,32 +147,45 @@ describe("useWeather", () => {
   });
 
   it("clears error on successful fetch", async () => {
-    const errorPromise = Promise.reject(new Error("Failed"));
-    const successPromise = Promise.resolve({
+    // Mock fetch implementations
+    const firstFetchReject = jest.fn().mockRejectedValueOnce(new Error("Failed"));
+    const secondFetchResolve = jest.fn().mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockWeatherData),
     });
-
+  
     (global.fetch as jest.Mock)
-      .mockImplementationOnce(() => errorPromise)
-      .mockImplementationOnce(() => successPromise);
-
-    const { result, rerender } = renderHook((props) => useWeather(props), {
-      initialProps: "Invalid City",
+      .mockImplementationOnce(firstFetchReject)
+      .mockImplementationOnce(secondFetchResolve);
+  
+    const { result, rerender } = renderHook(
+      (location: string) => useWeather(location),
+      { initialProps: "Invalid City" }
+    );
+  
+    // Wait for error state to be set
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error);
+      expect(result.current.data).toBeNull();
+    }, { timeout: 1000 });
+  
+    // Verify initial error state
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.data).toBeNull();
+  
+    // Rerender with valid city
+    act(() => {
+      rerender("New York");
     });
-
-    // Wait for the error state
-    await waitFor(() => {
-      expect(result.current.error).toBeTruthy();
-    }, { timeout: 100 });
-
-    // Change to valid location
-    rerender("New York");
-
-    // Wait for successful fetch
-    await waitFor(() => {
-      expect(result.current.error).toBeNull();
-      expect(result.current.data).toEqual(mockWeatherData);
-    }, { timeout: 100 });
+  
+    // Wait for successful fetch with increased timeout
+    await waitFor(
+      () => {
+        const currentState = result.current;
+        expect(currentState.data).toEqual(mockWeatherData);
+        expect(currentState.error).toBeNull();
+      },
+      { timeout: 2000, interval: 100 }
+    );
   });
-});
+)

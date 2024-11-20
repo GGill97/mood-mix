@@ -97,6 +97,14 @@ interface ConversationMemory {
 //   conversationContext: ConversationContext;
 // }
 //add conversation signal detection
+
+interface Analysis {
+  wantsNewPlaylist: boolean;
+  shouldRespond: boolean;
+  response?: string;
+  moodAnalysis?: string;
+}
+
 const NEGATIVE_SIGNALS = [
   "no need",
   "i am ok",
@@ -146,7 +154,7 @@ function analyzeUserIntent(
 }
 
 function generateConversationalResponse(
-  analysis: any,
+  analysis: Analysis,
   context?: ConversationContext
 ): string {
   if (!analysis.wantsNewPlaylist && context?.playlistGenerated) {
@@ -235,12 +243,16 @@ export async function POST(req: Request) {
     // Analyze user intent first
     const userIntent = analyzeUserIntent(message, context);
 
+    // In the POST function, update this section:
     if (!userIntent.wantsNewPlaylist && context?.currentPlaylist) {
-      // Return existing playlist with conversational response
       return NextResponse.json({
         ...context.currentPlaylist,
         response: generateConversationalResponse(
-          { wantsNewPlaylist: false },
+          {
+            wantsNewPlaylist: false,
+            shouldRespond: true,
+            response: context.currentPlaylist.displayTitle,
+          },
           context
         ),
         shouldRefreshPlaylist: false,

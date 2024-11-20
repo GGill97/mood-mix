@@ -1,5 +1,0 @@
-// .babelrc
-{
-  "presets": ["next/babel"],
-  "plugins": []
-}
