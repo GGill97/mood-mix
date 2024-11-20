@@ -1,2 +1,13 @@
 // jest.setup.js
-import '@testing-library/jest-dom';
+require("@testing-library/jest-dom");
+
+// Basic matchMedia mock
+window.matchMedia =
+  window.matchMedia ||
+  function () {
+    return {
+      matches: false,
+      addListener: function () {},
+      removeListener: function () {},
+    };
+  };

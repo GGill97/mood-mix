@@ -1,17 +1,23 @@
-// /mood-mix/jest.config.js
-const nextJest = require("next/jest");
+// jest.config.js
+module.exports = {
+  // Tell Jest to use jsdom for testing React components
+  testEnvironment: "jsdom",
 
-const createJestConfig = nextJest({
-  dir: "./",
-});
-
-const customJestConfig = {
-  testEnvironment: "jest-environment-jsdom",
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  // Handle Next.js specific features
   moduleNameMapper: {
+    // Handle the @ import alias
     "^@/(.*)$": "<rootDir>/src/$1",
+    // Handle CSS imports
+    "\\.(css|less|scss)$": "identity-obj-proxy",
+    // Handle image imports
+    "\\.(jpg|png|gif|svg)$": "<rootDir>/__mocks__/fileMock.js",
   },
-  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
-};
 
-module.exports = createJestConfig(customJestConfig);
+  // Setup file location
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+
+  // Files to transform
+  transform: {
+    "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
+  },
+};

@@ -186,7 +186,9 @@ const MusicInsightsV2: React.FC<MusicInsightsProps> = ({
       <InsightSection
         title="Weather & Music Analysis"
         content={insights?.moodAnalysis || ""}
-        icon={<CloudRain className="w-4 h-4" />}
+        icon={
+          <CloudRain className="w-4 h-4" data-testid="section-music-icon" />
+        }
       />
       {insights?.weatherImpact && (
         <InsightSection
@@ -223,7 +225,7 @@ const MusicInsightsV2: React.FC<MusicInsightsProps> = ({
     <Card className="w-full mt-4">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Music className="w-5 h-5" />
+          <Music className="w-5 h-5" data-testid="header-music-icon" />
           <span>AI Music Insights</span>
         </CardTitle>
       </CardHeader>

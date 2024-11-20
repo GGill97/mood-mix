@@ -1,45 +1,130 @@
 import { NextResponse } from "next/server";
 
-const cities = [
-  "New York, NY, USA",
-  "Los Angeles, CA, USA",
-  "Chicago, IL, USA",
-  "Houston, TX, USA",
-  "Phoenix, AZ, USA",
-  "Philadelphia, PA, USA",
-  "San Antonio, TX, USA",
-  "San Diego, CA, USA",
-  "Dallas, TX, USA",
-  "San Jose, CA, USA",
-  "Seattle, WA, USA",
-  "San Francisco, CA, USA",
-  "Austin, TX, USA",
-  "Denver, CO, USA",
-  "Washington, DC, USA",
-  "Boston, MA, USA",
-  "Miami, FL, USA",
-  "Atlanta, GA, USA",
-  "Las Vegas, NV, USA",
-  "Portland, OR, USA",
-];
-
-function getCitySuggestions(query: string): string[] {
-  return cities.filter((city) =>
-    city.toLowerCase().includes(query.toLowerCase())
-  );
+interface LocationResult {
+  name: string;
+  state?: string;
+  country: string;
+  district?: string;
+  city?: string;
+  displayName: string;
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q");
+  try {
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("q");
 
-  if (!query) {
+    if (!query || query.length < 2) {
+      return NextResponse.json([]);
+    }
+
+    // First try OpenWeather API for main cities
+    const OPENWEATHER_API_KEY = process.env.NEXT_OPENWEATHER_API_KEY;
+    const geocodingUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+      query
+    )}&limit=3&appid=${OPENWEATHER_API_KEY}`;
+
+    const weatherResponse = await fetch(geocodingUrl);
+    const weatherResults = await weatherResponse.json();
+
+    // Then try Nominatim for more detailed local results
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      query
+    )}&format=json&addressdetails=1&limit=5`;
+    const nominatimResponse = await fetch(nominatimUrl, {
+      headers: {
+        "User-Agent": "MoodMix Weather App",
+      },
+    });
+    const nominatimResults = await nominatimResponse.json();
+
+    // Combine and format results
+    const combinedResults = new Set<string>();
+
+    // Add OpenWeather results
+    weatherResults.forEach((result: any) => {
+      const formatted = formatLocation(
+        result.name,
+        result.state,
+        result.country
+      );
+      combinedResults.add(formatted);
+    });
+
+    // Add Nominatim results
+    nominatimResults.forEach((result: any) => {
+      const address = result.address;
+
+      // Handle districts/neighborhoods
+      if (address.suburb || address.neighbourhood) {
+        const district = address.suburb || address.neighbourhood;
+        const city = address.city || address.town || address.municipality;
+        if (city) {
+          const formatted = formatDetailedLocation(
+            district,
+            city,
+            address.state,
+            address.country
+          );
+          combinedResults.add(formatted);
+        }
+      }
+
+      // Handle cities
+      if (address.city || address.town) {
+        const formatted = formatLocation(
+          address.city || address.town,
+          address.state,
+          address.country
+        );
+        combinedResults.add(formatted);
+      }
+    });
+
+    // Convert to array and sort by relevance
+    const suggestions = Array.from(combinedResults)
+      .filter((location) =>
+        location.toLowerCase().includes(query.toLowerCase())
+      )
+      .sort((a, b) => {
+        // Prioritize results that start with the query
+        const aStartsWith = a.toLowerCase().startsWith(query.toLowerCase());
+        const bStartsWith = b.toLowerCase().startsWith(query.toLowerCase());
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        return a.localeCompare(b);
+      })
+      .slice(0, 6); // Limit to 6 results to avoid overcrowding
+
+    return NextResponse.json(suggestions);
+  } catch (error) {
+    console.error("City suggestions error:", error);
     return NextResponse.json(
-      { error: "Query parameter is required" },
-      { status: 400 }
+      { error: "Failed to fetch city suggestions" },
+      { status: 500 }
     );
   }
+}
 
-  const suggestions = getCitySuggestions(query);
-  return NextResponse.json(suggestions);
+function formatLocation(
+  city: string,
+  state?: string,
+  country?: string
+): string {
+  const parts = [city];
+  if (state) parts.push(state);
+  if (country === "United States of America") parts.push("USA");
+  else if (country) parts.push(country);
+  return parts.join(", ");
+}
+
+function formatDetailedLocation(
+  district: string,
+  city: string,
+  state?: string,
+  country?: string
+): string {
+  return `${district} (${city}), ${state || ""}, ${
+    country === "United States of America" ? "USA" : country
+  }`.replace(/, ,/g, ",");
 }

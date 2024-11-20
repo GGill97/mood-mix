@@ -16,7 +16,7 @@ const FeatureCard = ({ icon, title, desc }: FeatureCardProps) => (
 );
 
 export const FeatureSection = () => (
-  <section className="w-full max-w-4xl">
+  <section className="w-full max-w-4xl" data-testid="feature-section">
     <div className="glass p-8 rounded-xl">
       <div className="flex justify-center gap-6 mb-8">
         <FaCloudSun className="text-4xl text-terracotta animate-bounce" />

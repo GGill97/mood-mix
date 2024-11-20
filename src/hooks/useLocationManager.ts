@@ -1,54 +1,71 @@
-/**
- * useLocationManager.ts
- * Custom hook for managing location-related state and actions
- *
- * Pseudocode:
- * 1. Initialize states for location, error, and weather
- * 2. Create handlers for:
- *    - Setting location and clearing error
- *    - Setting location error
- *    - Setting weather description
- *    - Handling location search
- * 3. Return state and handlers
- */
-
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import useGeolocation from "./useGeolocation";
 
 interface LocationManagerReturn {
-  // States
   location: string;
   locationError: string | null;
   weatherDescription: string;
   isLoading: boolean;
-
-  // Setters
   setLocation: (location: string) => void;
   setLocationError: (error: string | null) => void;
   setWeatherDescription: (description: string) => void;
-
-  // Handlers
-  handleLocationSearch: (query: string) => void;
+  handleLocationSearch: (query: string) => Promise<void>;
   handleLocationClick: () => Promise<void>;
   handleWeatherUpdate: (description: string) => void;
 }
 
 export const useLocationManager = (): LocationManagerReturn => {
-  // State Management
   const [location, setLocation] = useState<string>("");
   const [locationError, setLocationError] = useState<string | null>(null);
   const [weatherDescription, setWeatherDescription] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Geolocation Hook
-  const { isLoading, requestGeolocation } = useGeolocation();
+  const { requestGeolocation } = useGeolocation();
 
-  // Location Search Handler
-  const handleLocationSearch = (query: string) => {
+  const fetchWeatherData = async (searchQuery: string) => {
+    setIsLoading(true);
     setLocationError(null);
-    setLocation(query);
+
+    try {
+      const response = await fetch(
+        `/api/weather?location=${encodeURIComponent(searchQuery)}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch weather data");
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setLocation(data.name);
+      setWeatherDescription(data.weather[0]?.description || "");
+      return data;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch weather data";
+      setLocationError(message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Get Current Location Handler
+  const handleLocationSearch = async (query: string) => {
+    if (!query.trim()) {
+      setLocation("");
+      setWeatherDescription("");
+      return;
+    }
+
+    try {
+      await fetchWeatherData(query);
+    } catch (error) {
+      console.error("Location search error:", error);
+    }
+  };
+
   const handleLocationClick = async () => {
     setLocationError(null);
     try {
@@ -58,37 +75,32 @@ export const useLocationManager = (): LocationManagerReturn => {
       const response = await fetch(
         `/api/weather/reverse-geocode?lat=${coords.lat}&lon=${coords.lon}`
       );
+
       if (!response.ok) throw new Error("Failed to get location name");
 
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
-      setLocation(data.cityName);
+      await fetchWeatherData(data.cityName);
     } catch (err) {
       setLocationError(
-        "Unable to determine your city. Please try entering it manually."
+        "Unable to determine your location. Please try entering it manually."
       );
     }
   };
 
-  // Weather Update Handler
-  const handleWeatherUpdate = (description: string) => {
+  const handleWeatherUpdate = useCallback((description: string) => {
     setWeatherDescription(description);
-  };
+  }, []);
 
   return {
-    // States
     location,
     locationError,
     weatherDescription,
     isLoading,
-
-    // Setters
     setLocation,
     setLocationError,
     setWeatherDescription,
-
-    // Handlers
     handleLocationSearch,
     handleLocationClick,
     handleWeatherUpdate,
