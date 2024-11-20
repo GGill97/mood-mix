@@ -82,7 +82,7 @@ export const useLocationManager = (): LocationManagerReturn => {
       if (data.error) throw new Error(data.error);
 
       await fetchWeatherData(data.cityName);
-    } catch (err) {
+    } catch {
       setLocationError(
         "Unable to determine your location. Please try entering it manually."
       );

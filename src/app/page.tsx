@@ -33,7 +33,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useCallback } from "react";
+// import { useState, useCallback } from "react";
 
 // Components
 import { HeaderSection } from "@/components/layout/HeaderSection";
@@ -45,18 +45,18 @@ import { WeatherMusicSection } from "@/components/layout/WeatherMusicSection";
 import { useLocationManager } from "../hooks/useLocationManager";
 import { useMusicManager } from "../hooks/useMusicManager";
 
-// Types
-interface LocationState {
-  city: string;
-  error: string | null;
-  weather: string;
-}
+// // Types
+// interface LocationState {
+//   city: string;
+//   error: string | null;
+//   weather: string;
+// }
 
-interface MusicState {
-  selectedGenres: string[];
-  moodGenres: string[];
-  displayTitle: string;
-}
+// interface MusicState {
+//   selectedGenres: string[];
+//   moodGenres: string[];
+//   displayTitle: string;
+// }
 
 export default function Home() {
   const { data: session } = useSession();

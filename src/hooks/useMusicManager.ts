@@ -39,7 +39,7 @@ interface MusicManagerReturn {
 }
 
 export const useMusicManager = (
-  weatherDescription: string
+  // weatherDescription: string
 ): MusicManagerReturn => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [moodGenres, setMoodGenres] = useState<string[]>([]);

@@ -11,7 +11,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ChatMessage } from "@/types/chat";
 import { getWelcomeMessage } from "@/constants/chat";
-import { time } from "console";
+// import { time } from "console";
 
 // Type definitions
 interface ChatSession {

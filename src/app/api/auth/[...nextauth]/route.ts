@@ -3,7 +3,7 @@ import NextAuth from "next-auth";
 import SpotifyProvider from "next-auth/providers/spotify";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import SpotifyWebApi from "spotify-web-api-node";
+// import SpotifyWebApi from "spotify-web-api-node";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -30,10 +30,10 @@ declare module "next-auth/jwt" {
   }
 }
 
-const spotifyApi = new SpotifyWebApi({
-  clientId: process.env.SPOTIFY_CLIENT_ID!,
-  clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-});
+// const spotifyApi = new SpotifyWebApi({
+//   clientId: process.env.SPOTIFY_CLIENT_ID!,
+//   clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+// });
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {

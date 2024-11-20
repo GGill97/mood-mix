@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-interface LocationResult {
-  name: string;
-  state?: string;
-  country: string;
-  district?: string;
-  city?: string;
-  displayName: string;
-}
+// interface LocationResult {
+//   name: string;
+//   state?: string;
+//   country: string;
+//   district?: string;
+//   city?: string;
+//   displayName: string;
+// }
 
 export async function GET(request: Request) {
   try {

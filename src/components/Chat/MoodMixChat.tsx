@@ -11,7 +11,7 @@ Uses a persistent storage system for chat sessions
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
+// import { Card } from "@/components/ui/card";
 import { SendHorizontal, Loader2 } from "lucide-react";
 import { ChatMessage, MoodAnalysis, MoodMixChatProps } from "@/types/chat";
 import { ChatHeader } from "./ChatHeader";

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getRecommendations } from "@/utils/spotifyApi";
 
 // Define valid genres as string literal type
-// === UPDATE TYPE DEFINITION ===
+// === TYPE DEFINITION ===
 type SpotifyGenre =
   | "pop"
   | "dance"
@@ -25,7 +25,6 @@ type SpotifyGenre =
   | "indie";
 
 // === ADD NEW HELPER FUNCTION ===
-// Add this after the SPOTIFY_GENRES definition
 const MOOD_ATTRIBUTES: Record<
   string,
   {
@@ -63,40 +62,40 @@ interface ConversationContext {
     activity?: string;
     mood?: string;
     preferredGenres?: SpotifyGenre[];
-    memory:ConversationMemory;
+    memory: ConversationMemory;
   };
   currentPlaylist?: {
     genres: SpotifyGenre[];
     displayTitle: string;
-    createdAt:string;
+    createdAt: string;
   };
 }
 
-interface ConversationMemory{
-  hasDeclinedRefresh:boolean;
-  lastMessage:string;
-  messageCount:number;
-  currentTopic?:string;
-  briefResponse:boolean;
-  lastMeaningfulResponse:string;
+interface ConversationMemory {
+  hasDeclinedRefresh: boolean;
+  lastMessage: string;
+  messageCount: number;
+  currentTopic?: string;
+  briefResponse: boolean;
+  lastMeaningfulResponse: string;
 }
 // Type definitions for better type safety
-interface MoodAnalysisResponse {
-  genres: SpotifyGenre[];
-  weatherMood: string;
-  response: string;
-  moodAnalysis: string;
-  seedTracks: string[];
-  displayTitle: string;
-  targetAttributes: {
-    energy: number;
-    valence: number;
-    tempo: number;
-    danceability: number;
-  };
-  shouldRefreshPlaylist: boolean;
-  conversationContext: ConversationContext;
-}
+// interface MoodAnalysisResponse {
+//   genres: SpotifyGenre[];
+//   weatherMood: string;
+//   response: string;
+//   moodAnalysis: string;
+//   seedTracks: string[];
+//   displayTitle: string;
+//   targetAttributes: {
+//     energy: number;
+//     valence: number;
+//     tempo: number;
+//     danceability: number;
+//   };
+//   shouldRefreshPlaylist: boolean;
+//   conversationContext: ConversationContext;
+// }
 //add conversation signal detection
 const NEGATIVE_SIGNALS = [
   "no need",
@@ -148,8 +147,7 @@ function analyzeUserIntent(
 
 function generateConversationalResponse(
   analysis: any,
-  context?: ConversationContext,
-  userMessage?: string
+  context?: ConversationContext
 ): string {
   if (!analysis.wantsNewPlaylist && context?.playlistGenerated) {
     // Acknowledge user's preference to keep current playlist
@@ -243,8 +241,7 @@ export async function POST(req: Request) {
         ...context.currentPlaylist,
         response: generateConversationalResponse(
           { wantsNewPlaylist: false },
-          context,
-          message
+          context
         ),
         shouldRefreshPlaylist: false,
         conversationContext: {
@@ -255,7 +252,6 @@ export async function POST(req: Request) {
     }
 
     // === UPDATE PROMPT ===
-    // Replace the existing prompt with:
     const prompt = `As a music expert and conversational AI, analyze this message: "${message}". Previous context:${
       context ? JSON.stringify(context) : "No previous context"
     }
@@ -314,14 +310,9 @@ IMPORTANT:
 
     // In the POST handler, update the rawAnalysis processing:
     const rawAnalysis = JSON.parse(completion.choices[0].message.content);
-    const processedAnalysis = adjustAttributesForMood(rawAnalysis);
 
     // Update the response to be more conversational
-    rawAnalysis.response = generateConversationalResponse(
-      rawAnalysis,
-      context,
-      message
-    );
+    rawAnalysis.response = generateConversationalResponse(rawAnalysis, context);
     // Update conversation context
     rawAnalysis.conversationContext = {
       playlistGenerated: true,
@@ -329,12 +320,12 @@ IMPORTANT:
       userPreferences: {
         activity: context?.userPreferences?.activity,
         mood: rawAnalysis.moodAnalysis,
-        preferredGenres: rawAnalysis.genres
+        preferredGenres: rawAnalysis.genres,
       },
       currentPlaylist: {
         genres: rawAnalysis.genres,
-        displayTitle: rawAnalysis.displayTitle
-      }
+        displayTitle: rawAnalysis.displayTitle,
+      },
     };
     // Validate weather mood
     if (!WEATHER_MOODS.includes(rawAnalysis.weatherMood)) {

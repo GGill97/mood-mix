@@ -14,36 +14,44 @@ const useGeolocation = () => {
     latitude: null,
     longitude: null,
     error: null,
-    isLoading: false
+    isLoading: false,
   });
 
-  const requestGeolocation = async (): Promise<{ lat: number; lon: number } | null> => {
+  const requestGeolocation = async (): Promise<{
+    lat: number;
+    lon: number;
+  } | null> => {
     if (!navigator.geolocation) {
-      setState(prev => ({ ...prev, error: "Geolocation is not supported by your browser" }));
+      setState((prev) => ({
+        ...prev,
+        error: "Geolocation is not supported by your browser",
+      }));
       return null;
     }
 
-    setState(prev => ({ ...prev, isLoading: true }));
+    setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        }
+      );
 
       const { latitude, longitude } = position.coords;
       setState({
         latitude,
         longitude,
         error: null,
-        isLoading: false
+        isLoading: false,
       });
 
       return { lat: latitude, lon: longitude };
-    } catch (err) {
-      setState(prev => ({
+    } catch {
+      setState((prev) => ({
         ...prev,
         error: "Unable to retrieve your location",
-        isLoading: false
+        isLoading: false,
       }));
       return null;
     }
@@ -51,7 +59,7 @@ const useGeolocation = () => {
 
   return {
     ...state,
-    requestGeolocation
+    requestGeolocation,
   };
 };
 

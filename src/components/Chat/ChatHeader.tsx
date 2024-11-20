@@ -13,7 +13,6 @@ export function ChatHeader({
   onNewChat,
   onToggleHistory,
   isHistoryOpen,
-  sessionDate,
 }: ChatHeaderProps) {
   return (
     <div className="flex items-center justify-between p-4 border-b border-terracotta/10 bg-white/5">
