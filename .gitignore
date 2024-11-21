@@ -40,11 +40,7 @@ next-env.d.ts
 # Environment variables
 .env.local
 
-# Test files
-**/tests/**
 
-# Mocks
-**/mocks/**
 
 # Miscellaneous
 *.pem  # Certificates
