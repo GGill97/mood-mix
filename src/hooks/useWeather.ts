@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-interface WeatherData {
+export interface WeatherData {
   name: string;
   main: {
     temp: number;

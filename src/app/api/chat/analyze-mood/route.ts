@@ -101,8 +101,8 @@ interface ConversationMemory {
 interface Analysis {
   wantsNewPlaylist: boolean;
   shouldRespond: boolean;
-  response?: string;
-  moodAnalysis?: string;
+  response: string;
+  moodAnalysis: string;
 }
 
 const NEGATIVE_SIGNALS = [
@@ -216,7 +216,6 @@ function isValidSpotifyGenre(genre: string): genre is SpotifyGenre {
   return SPOTIFY_GENRES.includes(genre as SpotifyGenre);
 }
 // === ADD VALIDATION FUNCTION ===
-// Add this before the POST handler
 function adjustAttributesForMood(analysis: any) {
   // Check message content for mood indicators
   const message = analysis.moodAnalysis.toLowerCase();
@@ -243,7 +242,6 @@ export async function POST(req: Request) {
     // Analyze user intent first
     const userIntent = analyzeUserIntent(message, context);
 
-    // In the POST function, update this section:
     if (!userIntent.wantsNewPlaylist && context?.currentPlaylist) {
       return NextResponse.json({
         ...context.currentPlaylist,
@@ -252,6 +250,8 @@ export async function POST(req: Request) {
             wantsNewPlaylist: false,
             shouldRespond: true,
             response: context.currentPlaylist.displayTitle,
+            moodAnalysis:
+              context.userPreferences?.mood || "Keeping current mood",
           },
           context
         ),

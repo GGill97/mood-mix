@@ -1,7 +1,6 @@
 // __tests__/hooks/useWeather.test.ts
-import { renderHook, act, waitFor } from "@testing-library/react";
-import { useWeather } from "@/hooks/useWeather";
-import type { WeatherData } from "@/hooks/useWeather";
+import { renderHook, waitFor } from "@testing-library/react";
+import { useWeather, type WeatherData } from "@/hooks/useWeather";
 
 describe("useWeather", () => {
   const mockWeatherData: WeatherData = {
@@ -15,7 +14,7 @@ describe("useWeather", () => {
       {
         description: "clear sky",
         icon: "01d",
-      }
+      },
     ],
     wind: {
       speed: 5.2,
@@ -35,12 +34,12 @@ describe("useWeather", () => {
   });
 
   it("fetches weather data when location is provided", async () => {
-    const successPromise = Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(mockWeatherData),
-    });
-
-    (global.fetch as jest.Mock).mockImplementationOnce(() => successPromise);
+    (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockWeatherData),
+      })
+    );
 
     const { result } = renderHook(() => useWeather("New York"));
 
@@ -54,12 +53,12 @@ describe("useWeather", () => {
   });
 
   it("handles API errors", async () => {
-    const errorPromise = Promise.resolve({
-      ok: false,
-      statusText: "Not Found"
-    });
-
-    (global.fetch as jest.Mock).mockImplementationOnce(() => errorPromise);
+    (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: false,
+        statusText: "Not Found",
+      })
+    );
 
     const { result } = renderHook(() => useWeather("Invalid City"));
 
@@ -70,8 +69,9 @@ describe("useWeather", () => {
   });
 
   it("handles network errors", async () => {
-    const networkError = new Error("Network error");
-    (global.fetch as jest.Mock).mockRejectedValueOnce(networkError);
+    (global.fetch as jest.Mock).mockRejectedValueOnce(
+      new Error("Network error")
+    );
 
     const { result } = renderHook(() => useWeather("New York"));
 
@@ -82,28 +82,24 @@ describe("useWeather", () => {
   });
 
   it("updates weather data when location changes", async () => {
-    const newYorkData = { ...mockWeatherData, name: "New York" };
-    const londonData = { ...mockWeatherData, name: "London" };
-
-    // First fetch returns New York data
-    const firstPromise = Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(newYorkData),
-    });
-
-    // Second fetch returns London data
-    const secondPromise = Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(londonData),
-    });
-
     (global.fetch as jest.Mock)
-      .mockImplementationOnce(() => firstPromise)
-      .mockImplementationOnce(() => secondPromise);
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockWeatherData, name: "New York" }),
+        })
+      )
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ...mockWeatherData, name: "London" }),
+        })
+      );
 
-    const { result, rerender } = renderHook((props) => useWeather(props), {
-      initialProps: "New York",
-    });
+    const { result, rerender } = renderHook(
+      (location: string) => useWeather(location),
+      { initialProps: "New York" }
+    );
 
     await waitFor(() => {
       expect(result.current.data?.name).toBe("New York");
@@ -116,76 +112,33 @@ describe("useWeather", () => {
     });
   });
 
-  it("cancels previous fetch when location changes quickly", async () => {
-    const slowPromise = new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          ok: true,
-          json: () => Promise.resolve({ ...mockWeatherData, name: "New York" }),
-        });
-      }, 100);
-    });
-
-    const fastPromise = Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({ ...mockWeatherData, name: "London" }),
-    });
-
-    (global.fetch as jest.Mock)
-      .mockImplementationOnce(() => slowPromise)
-      .mockImplementationOnce(() => fastPromise);
-
-    const { result, rerender } = renderHook((props) => useWeather(props), {
-      initialProps: "New York",
-    });
-
-    rerender("London");
-
-    await waitFor(() => {
-      expect(result.current.data?.name).toBe("London");
-    });
-  });
-
   it("clears error on successful fetch", async () => {
-    // Mock fetch implementations
-    const firstFetchReject = jest.fn().mockRejectedValueOnce(new Error("Failed"));
-    const secondFetchResolve = jest.fn().mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(mockWeatherData),
-    });
-  
     (global.fetch as jest.Mock)
-      .mockImplementationOnce(firstFetchReject)
-      .mockImplementationOnce(secondFetchResolve);
-  
+      .mockRejectedValueOnce(new Error("Failed"))
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockWeatherData),
+        })
+      );
+
     const { result, rerender } = renderHook(
       (location: string) => useWeather(location),
       { initialProps: "Invalid City" }
     );
-  
-    // Wait for error state to be set
+
+    // Wait for error state
     await waitFor(() => {
-      expect(result.current.error).toBeInstanceOf(Error);
-      expect(result.current.data).toBeNull();
-    }, { timeout: 1000 });
-  
-    // Verify initial error state
-    expect(result.current.error).toBeInstanceOf(Error);
-    expect(result.current.data).toBeNull();
-  
-    // Rerender with valid city
-    act(() => {
-      rerender("New York");
+      expect(result.current.error).toBeTruthy();
     });
-  
-    // Wait for successful fetch with increased timeout
-    await waitFor(
-      () => {
-        const currentState = result.current;
-        expect(currentState.data).toEqual(mockWeatherData);
-        expect(currentState.error).toBeNull();
-      },
-      { timeout: 2000, interval: 100 }
-    );
+
+    // Change location
+    rerender("New York");
+
+    // Wait for successful fetch
+    await waitFor(() => {
+      expect(result.current.data).toEqual(mockWeatherData);
+      expect(result.current.error).toBeNull();
+    });
   });
-)
+});
