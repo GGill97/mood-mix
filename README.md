@@ -46,7 +46,7 @@ A dynamic web application that creates personalized Spotify playlists based on y
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/moodmix.git
+git clone https://github.com/GGill97/mood-mix.git
 cd moodmix
 ```
 
@@ -92,6 +92,66 @@ src/
 └── utils/           # Helper functions
 ```
 
+## Testing 🧪
+
+MoodMix uses a comprehensive testing suite to ensure reliability and functionality.
+
+### Test Structure
+
+```
+tests/
+├── components/        # Component tests
+│   ├── Chat/         # Chat component tests
+│   ├── Music/        # Music component tests
+│   └── Weather/      # Weather component tests
+├── hooks/            # Custom hooks tests
+├── integration/      # Integration tests
+└── utils/            # Utility function tests
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test:watch
+
+# Run tests with coverage report
+npm test:coverage
+```
+
+### Testing Stack
+
+- Jest
+- React Testing Library
+- MSW (Mock Service Worker)
+- Testing Library User Event
+
+### Coverage Goals
+
+- Core utilities: 90%+ coverage
+- Components: 85%+ coverage
+- Custom hooks: 80%+ coverage
+- Integration flows: Full coverage of critical paths
+
+### Example Test
+
+```typescript
+import { render, screen, fireEvent } from "@testing-library/react";
+import { SearchBar } from "@/components/Search/SearchBar";
+
+describe("SearchBar", () => {
+  test("handles user input correctly", () => {
+    render(<SearchBar onSearch={jest.fn()} />);
+    const input = screen.getByPlaceholderText("Search for a city...");
+    fireEvent.change(input, { target: { value: "London" } });
+    expect(input).toHaveValue("London");
+  });
+});
+```
+
 ## Key Features Explained 🔑
 
 ### Weather Integration
@@ -121,10 +181,6 @@ src/
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License 📝
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
 ## Acknowledgments 👏
 
 - OpenWeather API for weather data
@@ -135,11 +191,10 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Contact 📧
 
-Project Link: [https://github.com/GGill97/mood-mix]
-(https://github.com/yourusername/moodmix)
+Project Link: [https://github.com/GGill97/mood-mix](https://github.com/GGill97/mood-mix)
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
