@@ -67,7 +67,7 @@ interface ConversationContext {
   currentPlaylist?: {
     genres: SpotifyGenre[];
     displayTitle: string;
-    createdAt: string;
+    createdAt?: string;
   };
 }
 
@@ -79,24 +79,22 @@ interface ConversationMemory {
   briefResponse: boolean;
   lastMeaningfulResponse: string;
 }
-// Type definitions for better type safety
-// interface MoodAnalysisResponse {
-//   genres: SpotifyGenre[];
-//   weatherMood: string;
-//   response: string;
-//   moodAnalysis: string;
-//   seedTracks: string[];
-//   displayTitle: string;
-//   targetAttributes: {
-//     energy: number;
-//     valence: number;
-//     tempo: number;
-//     danceability: number;
-//   };
-//   shouldRefreshPlaylist: boolean;
-//   conversationContext: ConversationContext;
-// }
-//add conversation signal detection
+
+interface MoodAnalysisResponse {
+  genres: SpotifyGenre[];
+  weatherMood: (typeof WEATHER_MOODS)[number];
+  response: string;
+  moodAnalysis: string;
+  displayTitle: string;
+  targetAttributes: {
+    energy: number;
+    valence: number;
+    tempo: number;
+    danceability: number;
+  };
+  conversationContext?: ConversationContext;
+  recommendations?: SpotifyTrack[];
+}
 
 interface Analysis {
   wantsNewPlaylist: boolean;
@@ -215,20 +213,6 @@ const SPOTIFY_GENRES: SpotifyGenre[] = [
 function isValidSpotifyGenre(genre: string): genre is SpotifyGenre {
   return SPOTIFY_GENRES.includes(genre as SpotifyGenre);
 }
-// === ADD VALIDATION FUNCTION ===
-function adjustAttributesForMood(analysis: any) {
-  // Check message content for mood indicators
-  const message = analysis.moodAnalysis.toLowerCase();
-
-  if (message.includes("sad") || message.includes("slow")) {
-    analysis.targetAttributes = MOOD_ATTRIBUTES.sad;
-  } else if (message.includes("relax")) {
-    analysis.targetAttributes = MOOD_ATTRIBUTES.relaxed;
-  }
-
-  return analysis;
-}
-
 export async function POST(req: Request) {
   try {
     const { message, context, accessToken } = await req.json();
@@ -321,10 +305,20 @@ IMPORTANT:
     }
 
     // In the POST handler, update the rawAnalysis processing:
-    const rawAnalysis = JSON.parse(completion.choices[0].message.content);
+    const rawAnalysis = JSON.parse(
+      completion.choices[0].message.content
+    ) as MoodAnalysisResponse;
 
     // Update the response to be more conversational
-    rawAnalysis.response = generateConversationalResponse(rawAnalysis, context);
+    rawAnalysis.response = generateConversationalResponse(
+      {
+        wantsNewPlaylist: true, // Set based on your logic
+        shouldRespond: true,
+        response: rawAnalysis.response,
+        moodAnalysis: rawAnalysis.moodAnalysis,
+      },
+      context
+    );
     // Update conversation context
     rawAnalysis.conversationContext = {
       playlistGenerated: true,

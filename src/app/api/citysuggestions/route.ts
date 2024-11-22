@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server";
 
-// interface LocationResult {
-//   name: string;
-//   state?: string;
-//   country: string;
-//   district?: string;
-//   city?: string;
-//   displayName: string;
-// }
+// Interface for OpenWeather API response
+interface OpenWeatherLocation {
+  name: string;
+  state?: string;
+  country: string;
+  lat: number;
+  lon: number;
+}
+
+// Interface for Nominatim API response
+interface NominatimLocation {
+  address: {
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    municipality?: string;
+    state?: string;
+    country: string;
+  };
+}
 
 export async function GET(request: Request) {
   try {
@@ -25,9 +38,10 @@ export async function GET(request: Request) {
     )}&limit=3&appid=${OPENWEATHER_API_KEY}`;
 
     const weatherResponse = await fetch(geocodingUrl);
-    const weatherResults = await weatherResponse.json();
+    const weatherResults =
+      (await weatherResponse.json()) as OpenWeatherLocation[];
 
-    // Then try Nominatim for more detailed local results
+    // Nominatim for more detailed local results
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       query
     )}&format=json&addressdetails=1&limit=5`;
@@ -36,13 +50,14 @@ export async function GET(request: Request) {
         "User-Agent": "MoodMix Weather App",
       },
     });
-    const nominatimResults = await nominatimResponse.json();
+    const nominatimResults =
+      (await nominatimResponse.json()) as NominatimLocation[];
 
     // Combine and format results
     const combinedResults = new Set<string>();
 
     // Add OpenWeather results
-    weatherResults.forEach((result: any) => {
+    weatherResults.forEach((result) => {
       const formatted = formatLocation(
         result.name,
         result.state,
@@ -52,18 +67,18 @@ export async function GET(request: Request) {
     });
 
     // Add Nominatim results
-    nominatimResults.forEach((result: any) => {
+    nominatimResults.forEach((result) => {
       const address = result.address;
 
       // Handle districts/neighborhoods
       if (address.suburb || address.neighbourhood) {
-        const district = address.suburb || address.neighbourhood;
-        const city = address.city || address.town || address.municipality;
+        const district = address.suburb ?? address.neighbourhood ?? "";
+        const city = address.city ?? address.town ?? address.municipality ?? "";
         if (city) {
           const formatted = formatDetailedLocation(
             district,
             city,
-            address.state,
+            address.state ?? "",
             address.country
           );
           combinedResults.add(formatted);
@@ -73,8 +88,8 @@ export async function GET(request: Request) {
       // Handle cities
       if (address.city || address.town) {
         const formatted = formatLocation(
-          address.city || address.town,
-          address.state,
+          address.city ?? address.town ?? "",
+          address.state ?? "",
           address.country
         );
         combinedResults.add(formatted);
@@ -98,7 +113,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json(suggestions);
   } catch (error) {
-    console.error("City suggestions error:", error);
+    console.error(
+      "City suggestions error:",
+      error instanceof Error ? error.message : error
+    );
     return NextResponse.json(
       { error: "Failed to fetch city suggestions" },
       { status: 500 }
@@ -108,23 +126,25 @@ export async function GET(request: Request) {
 
 function formatLocation(
   city: string,
-  state?: string,
-  country?: string
+  state: string | undefined,
+  country: string | undefined
 ): string {
   const parts = [city];
-  if (state) parts.push(state);
+  if (state?.trim()) parts.push(state);
   if (country === "United States of America") parts.push("USA");
-  else if (country) parts.push(country);
+  else if (country?.trim()) parts.push(country);
   return parts.join(", ");
 }
 
 function formatDetailedLocation(
   district: string,
   city: string,
-  state?: string,
-  country?: string
+  state: string | undefined,
+  country: string | undefined
 ): string {
-  return `${district} (${city}), ${state || ""}, ${
-    country === "United States of America" ? "USA" : country
-  }`.replace(/, ,/g, ",");
+  return `${district} (${city}), ${state ? state + ", " : ""}${
+    country === "United States of America" ? "USA" : country ?? ""
+  }`
+    .replace(/,\s+,/g, ",")
+    .replace(/,\s*$/g, "");
 }

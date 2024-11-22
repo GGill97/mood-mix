@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: Request) {
+// Add dynamic route marker
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
+// Add type declaration for NextRequest
+declare type NextRequestType = NextRequest;
+
+export async function GET(request: NextRequestType) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const location = searchParams.get("location");
 
     console.log("Weather API request for location:", location);
@@ -30,7 +37,7 @@ export async function GET(request: Request) {
     console.log("Fetching coordinates for location:", cleanLocation);
 
     // Get coordinates
-    const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodedLocation}&limit=1&appid=${OPENWEATHER_API_KEY}`;
+    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodedLocation}&limit=1&appid=${OPENWEATHER_API_KEY}`;
     const geoResponse = await fetch(geoUrl);
 
     if (!geoResponse.ok) {
@@ -52,7 +59,7 @@ export async function GET(request: Request) {
 
     // Get weather data
     const { lat, lon } = geoData[0];
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
+    const weatherUrl = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
 
     console.log("Fetching weather data for coordinates:", { lat, lon });
 

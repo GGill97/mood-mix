@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run clean && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --watch"
+    "test:coverage": "jest --watch",
+    "clean": "rm -rf .next"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",

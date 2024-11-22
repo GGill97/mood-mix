@@ -1,35 +1,44 @@
 /**
  * Chat Component Type Definitions
- * 
+ *
  * Purpose:
  * Centralized type definitions for the chat and mood analysis functionality
- * 
- * Types:
- * - ChatMessage: Structure of chat messages
- * - MoodAnalysis: Structure of mood analysis response
- * - MoodMixChatProps: Component props interface
  */
 
+// Basic chat message structure
 export interface ChatMessage {
-    role: "user" | "assistant";
-    content: string;
-    timestamp: number;
-  }
-  
-  export interface MoodAnalysis {
-    genres: string[];
-    weatherMood: string;
-    response: string;
-    moodAnalysis?: string;
-    recommendations?: SpotifyApi.TrackObjectSimplified[];
-  }
-  
-  export interface MoodMixChatProps {
-    onMoodAnalysis: (analysis: MoodAnalysis) => void;
-    className?: string;
-    spotifyAccessToken?: string;
-    isMinimized?: boolean;
-    onExpand?: () => void;
-  }
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
 
-  
+// Mood analysis response structure
+export interface MoodAnalysis {
+  genres: string[];
+  weatherMood: string;
+  response: string;
+  moodAnalysis: string;
+  displayTitle: string;
+  shouldRefreshPlaylist?: boolean;
+  recommendations?: Array<{
+    id: string;
+    name: string;
+    artists: Array<{ name: string }>;
+    uri: string;
+    preview_url: string | null;
+    external_urls: {
+      spotify: string;
+    };
+  }>;
+}
+
+// Chat component props
+export interface MoodMixChatProps {
+  onMoodAnalysis: (analysis: MoodAnalysis) => void;
+  className?: string;
+  spotifyAccessToken?: string;
+  isMinimized?: boolean;
+  onExpand?: () => void;
+}
+
+
