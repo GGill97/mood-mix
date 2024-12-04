@@ -7,6 +7,7 @@ module.exports = {
   moduleNameMapper: {
     // Handle the @ import alias
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^../../mocks/(.*)$": "<rootDir>/mocks/$1",
     // Handle CSS imports
     "\\.(css|less|scss)$": "identity-obj-proxy",
     // Handle image imports

@@ -2,13 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  //  handle build errors
+  async rewrites() {
+    return [
+      {
+        source: "/api/spotify/:path*",
+        destination: "https://api.spotify.com/v1/:path*",
+      },
+    ];
+  },
   typescript: {
-    // This will show errors in development but allow production builds
     ignoreBuildErrors: true,
   },
   eslint: {
-    // This will still show errors in development but allow production builds
     ignoreDuringBuilds: true,
   },
   webpack(config) {

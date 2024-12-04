@@ -3,8 +3,14 @@ import { getRecommendations } from "@/utils/spotifyApi";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const genres = searchParams.get("genres")?.split(",").filter(Boolean) || [];
+  const genres = searchParams.get("genres")?.split(",") || [];
   const accessToken = searchParams.get("accessToken");
+
+  console.log("Music API route accessed:", {
+    hasGenres: genres.length > 0,
+    hasToken: !!accessToken,
+    tokenLength: accessToken?.length,
+  });
 
   if (!accessToken) {
     return NextResponse.json(
@@ -19,6 +25,36 @@ export async function GET(request: Request) {
       { status: 400 }
     );
   }
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: "No access token provided" },
+      { status: 401 }
+    );
+  }
+
+  const response = await fetch(
+    `https://api.spotify.com/v1/recommendations?seed_genres=${genres.join(",")}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Spotify API error:", {
+      status: response.status,
+      error: errorText,
+      genres
+    });
+    return NextResponse.json(
+      { error: `Spotify API error: ${response.status}` },
+      { status: response.status }
+    );
+  }
+
 
   try {
     const recommendations = await getRecommendations(accessToken, genres);

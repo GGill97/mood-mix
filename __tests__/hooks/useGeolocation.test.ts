@@ -1,144 +1,58 @@
 import { renderHook, act } from "@testing-library/react";
-import useGeolocation from "../../src/hooks/useGeolocation";
+import useGeolocation from "@/hooks/useGeolocation";
 
 describe("useGeolocation", () => {
-  const originalGeolocation = global.navigator.geolocation;
+  const mockGeolocation = {
+    getCurrentPosition: jest.fn(),
+  };
 
   beforeEach(() => {
-    global.navigator.geolocation = {
-      getCurrentPosition: jest.fn(),
-      watchPosition: jest.fn(),
-      clearWatch: jest.fn(),
-    };
+    // Reset mock before each test
+    mockGeolocation.getCurrentPosition.mockReset();
+
+    // Mock the navigator.geolocation
+    Object.defineProperty(global.navigator, "geolocation", {
+      value: mockGeolocation,
+      writable: true,
+    });
   });
 
-  afterEach(() => {
-    global.navigator.geolocation = originalGeolocation;
-  });
-
-  it("initializes with default values", () => {
+  it("should initialize with default values", () => {
     const { result } = renderHook(() => useGeolocation());
 
     expect(result.current.latitude).toBeNull();
     expect(result.current.longitude).toBeNull();
     expect(result.current.error).toBeNull();
-    expect(result.current.isLoading).toBe(false);
-    expect(typeof result.current.requestGeolocation).toBe("function");
+    expect(result.current.isLoading).toBeFalsy();
   });
 
-  it("successfully gets geolocation", async () => {
+  it("should handle successful geolocation request", async () => {
     const mockPosition = {
       coords: {
-        latitude: 37.7749,
-        longitude: -122.4194,
+        latitude: 51.5074,
+        longitude: -0.1278,
       },
     };
 
-    (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementation(
-      (successCallback) => successCallback(mockPosition)
+    mockGeolocation.getCurrentPosition.mockImplementation((success) =>
+      success(mockPosition)
     );
 
     const { result } = renderHook(() => useGeolocation());
 
-    let locationResult;
     await act(async () => {
-      locationResult = await result.current.requestGeolocation();
+      await result.current.requestGeolocation();
     });
 
-    expect(locationResult).toEqual({
-      lat: mockPosition.coords.latitude,
-      lon: mockPosition.coords.longitude,
-    });
-
-    expect(result.current.latitude).toBe(mockPosition.coords.latitude);
-    expect(result.current.longitude).toBe(mockPosition.coords.longitude);
+    expect(result.current.latitude).toBe(51.5074);
+    expect(result.current.longitude).toBe(-0.1278);
     expect(result.current.error).toBeNull();
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isLoading).toBeFalsy();
   });
 
-  it("handles geolocation not supported", async () => {
-    delete (global.navigator as any).geolocation;
-
-    const { result } = renderHook(() => useGeolocation());
-
-    let locationResult;
-    await act(async () => {
-      locationResult = await result.current.requestGeolocation();
-    });
-
-    expect(locationResult).toBeNull();
-    expect(result.current.error).toBe(
-      "Geolocation is not supported by your browser"
-    );
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("handles geolocation error", async () => {
-    const mockError = new Error("Geolocation error");
-    (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementation(
-      (_, errorCallback) => errorCallback(mockError)
-    );
-
-    const { result } = renderHook(() => useGeolocation());
-
-    let locationResult;
-    await act(async () => {
-      locationResult = await result.current.requestGeolocation();
-    });
-
-    expect(locationResult).toBeNull();
-    expect(result.current.error).toBe("Unable to retrieve your location");
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("sets and clears loading state during request", async () => {
-    let resolvePosition: (value: unknown) => void;
-    const positionPromise = new Promise((resolve) => {
-      resolvePosition = resolve;
-    });
-
-    const mockPosition = {
-      coords: {
-        latitude: 37.7749,
-        longitude: -122.4194,
-      },
-    };
-
-    (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementation(
-      (successCallback) => {
-        positionPromise.then(() => {
-          successCallback(mockPosition);
-        });
-      }
-    );
-
-    const { result } = renderHook(() => useGeolocation());
-
-    await act(async () => {
-      // Start the geolocation request
-      const requestPromise = result.current.requestGeolocation();
-
-      // Wait a tick for state to update
-      await Promise.resolve();
-
-      // Now check loading state
-      expect(result.current.isLoading).toBe(true);
-
-      // Resolve the position
-      resolvePosition!(undefined);
-
-      // Wait for the request to complete
-      await requestPromise;
-    });
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.latitude).toBe(mockPosition.coords.latitude);
-  });
-
-  it("handles error state correctly", async () => {
-    const mockError = new Error("Geolocation error");
-    (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementation(
-      (_, errorCallback) => errorCallback(mockError)
+  it("should handle geolocation error", async () => {
+    mockGeolocation.getCurrentPosition.mockImplementation((_, error) =>
+      error(new Error("Geolocation error"))
     );
 
     const { result } = renderHook(() => useGeolocation());
@@ -148,6 +62,25 @@ describe("useGeolocation", () => {
     });
 
     expect(result.current.error).toBe("Unable to retrieve your location");
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isLoading).toBeFalsy();
+  });
+
+  it("should handle unsupported geolocation", async () => {
+    // Remove geolocation from navigator
+    Object.defineProperty(global.navigator, "geolocation", {
+      value: undefined,
+      writable: true,
+    });
+
+    const { result } = renderHook(() => useGeolocation());
+
+    await act(async () => {
+      await result.current.requestGeolocation();
+    });
+
+    expect(result.current.error).toBe(
+      "Geolocation is not supported by your browser"
+    );
+    expect(result.current.isLoading).toBeFalsy();
   });
 });

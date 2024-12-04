@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Interface for OpenWeather API response
+export const runtime = "edge";
+
 interface OpenWeatherLocation {
   name: string;
   state?: string;
@@ -9,7 +10,6 @@ interface OpenWeatherLocation {
   lon: number;
 }
 
-// Interface for Nominatim API response
 interface NominatimLocation {
   address: {
     suburb?: string;
@@ -31,96 +31,93 @@ export async function GET(request: Request) {
       return NextResponse.json([]);
     }
 
-    // First try OpenWeather API for main cities
     const OPENWEATHER_API_KEY = process.env.NEXT_OPENWEATHER_API_KEY;
-    const geocodingUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
-      query
-    )}&limit=3&appid=${OPENWEATHER_API_KEY}`;
+    const results = await Promise.allSettled([
+      // OpenWeather API request
+      fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+          query
+        )}&limit=3&appid=${OPENWEATHER_API_KEY}`,
+        { signal: AbortSignal.timeout(5000) }
+      ).then((res) => res.json()),
 
-    const weatherResponse = await fetch(geocodingUrl);
-    const weatherResults =
-      (await weatherResponse.json()) as OpenWeatherLocation[];
+      // Nominatim request
+      fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          query
+        )}&format=json&addressdetails=1&limit=5`,
+        {
+          headers: { "User-Agent": "MoodMix Weather App" },
+          signal: AbortSignal.timeout(5000),
+        }
+      ).then((res) => res.json()),
+    ]);
 
-    // Nominatim for more detailed local results
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      query
-    )}&format=json&addressdetails=1&limit=5`;
-    const nominatimResponse = await fetch(nominatimUrl, {
-      headers: {
-        "User-Agent": "MoodMix Weather App",
-      },
-    });
-    const nominatimResults =
-      (await nominatimResponse.json()) as NominatimLocation[];
-
-    // Combine and format results
     const combinedResults = new Set<string>();
 
-    // Add OpenWeather results
-    weatherResults.forEach((result) => {
-      const formatted = formatLocation(
-        result.name,
-        result.state,
-        result.country
-      );
-      combinedResults.add(formatted);
-    });
+    // Handle OpenWeather results
+    if (results[0].status === "fulfilled") {
+      const weatherResults = results[0].value as OpenWeatherLocation[];
+      weatherResults?.forEach((result) => {
+        const formatted = formatLocation(
+          result.name,
+          result.state,
+          result.country
+        );
+        combinedResults.add(formatted);
+      });
+    }
 
-    // Add Nominatim results
-    nominatimResults.forEach((result) => {
-      const address = result.address;
+    // Handle Nominatim results
+    if (results[1].status === "fulfilled") {
+      const nominatimResults = results[1].value as NominatimLocation[];
+      nominatimResults?.forEach((result) => {
+        const address = result.address;
 
-      // Handle districts/neighborhoods
-      if (address.suburb || address.neighbourhood) {
-        const district = address.suburb ?? address.neighbourhood ?? "";
-        const city = address.city ?? address.town ?? address.municipality ?? "";
-        if (city) {
-          const formatted = formatDetailedLocation(
-            district,
-            city,
+        if (address.suburb || address.neighbourhood) {
+          const district = address.suburb ?? address.neighbourhood ?? "";
+          const city =
+            address.city ?? address.town ?? address.municipality ?? "";
+          if (city) {
+            const formatted = formatDetailedLocation(
+              district,
+              city,
+              address.state ?? "",
+              address.country
+            );
+            combinedResults.add(formatted);
+          }
+        }
+
+        if (address.city || address.town) {
+          const formatted = formatLocation(
+            address.city ?? address.town ?? "",
             address.state ?? "",
             address.country
           );
           combinedResults.add(formatted);
         }
-      }
+      });
+    }
 
-      // Handle cities
-      if (address.city || address.town) {
-        const formatted = formatLocation(
-          address.city ?? address.town ?? "",
-          address.state ?? "",
-          address.country
-        );
-        combinedResults.add(formatted);
-      }
-    });
-
-    // Convert to array and sort by relevance
+    // Filter and sort results
     const suggestions = Array.from(combinedResults)
       .filter((location) =>
         location.toLowerCase().includes(query.toLowerCase())
       )
       .sort((a, b) => {
-        // Prioritize results that start with the query
         const aStartsWith = a.toLowerCase().startsWith(query.toLowerCase());
         const bStartsWith = b.toLowerCase().startsWith(query.toLowerCase());
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
         return a.localeCompare(b);
       })
-      .slice(0, 6); // Limit to 6 results to avoid overcrowding
+      .slice(0, 6);
 
     return NextResponse.json(suggestions);
   } catch (error) {
-    console.error(
-      "City suggestions error:",
-      error instanceof Error ? error.message : error
-    );
-    return NextResponse.json(
-      { error: "Failed to fetch city suggestions" },
-      { status: 500 }
-    );
+    // Return empty results instead of error for better UX
+    return NextResponse.json([]);
   }
 }
 

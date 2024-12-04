@@ -1,9 +1,7 @@
-// app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import SpotifyProvider from "next-auth/providers/spotify";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-// import SpotifyWebApi from "spotify-web-api-node";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -29,11 +27,6 @@ declare module "next-auth/jwt" {
     error?: string;
   }
 }
-
-// const spotifyApi = new SpotifyWebApi({
-//   clientId: process.env.SPOTIFY_CLIENT_ID!,
-//   clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-// });
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
@@ -70,7 +63,6 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       refreshToken: data.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.error("Error refreshing token:", error);
     return {
       ...token,
       error: "RefreshAccessTokenError",
@@ -89,8 +81,11 @@ const authOptions: NextAuthOptions = {
             "user-read-email",
             "playlist-modify-public",
             "playlist-modify-private",
-            "user-top-read",
-            "user-read-private", // Add this scope
+            "user-library-read",
+            "user-library-modify",
+            "streaming",
+            "user-read-playback-state",
+            "user-modify-playback-state",
           ].join(" "),
         },
       },
@@ -98,53 +93,42 @@ const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, account, profile }) {
-      // Initial sign in
+      console.log("JWT Callback:", {
+        hasAccount: !!account,
+        hasProfile: !!profile,
+        tokenExpiry: token.expiresAt,
+        hasAccessToken: !!token.accessToken,
+      });
       if (account && profile) {
-        console.log("Initial sign in, profile:", profile);
+        console.log("New token received from Spotify");
         return {
           ...token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           expiresAt: account.expires_at ? account.expires_at * 1000 : 0,
-          id: profile.id, // Make sure to get the ID from the profile
+          id: profile.id,
         };
       }
 
-      // Return previous token if the access token has not expired
       if (token.expiresAt && Date.now() < token.expiresAt) {
         return token;
       }
 
-      // Access token expired, refresh it
       return refreshAccessToken(token);
     },
-    async session({ session, token, user }) {
-      console.log("Session callback:", { token, user });
-
-      // Pass values to the client
+    async session({ session, token }) {
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
       session.error = token.error;
 
-      // Make sure to set the user ID
       if (session.user) {
         session.user.id = token.id as string;
       }
 
-      console.log("Returning session:", session);
       return session;
     },
   },
-  debug: true,
-  // Add these to help with debugging
-  events: {
-    async signIn(message) {
-      console.log("Sign in event:", message);
-    },
-    async session(message) {
-      console.log("Session event:", message);
-    },
-  },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

@@ -41,6 +41,7 @@ interface CreatePlaylistResponse {
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+  redirectUri: process.env.AUTH_REDIRECT_URI,
 });
 
 async function withTokenRefresh<T>(operation: () => Promise<T>): Promise<T> {
@@ -70,7 +71,11 @@ export const getRecommendations = async (
   accessToken: string,
   genres: string[]
 ): Promise<SpotifyTrack[]> => {
-  console.log("Getting recommendations for genres:", genres);
+  console.log("Starting getRecommendations with:", {
+    hasAccessToken: !!accessToken,
+    accessTokenLength: accessToken?.length,
+    genres,
+  });
 
   if (!accessToken) {
     throw new Error("Access token is required for recommendations");
@@ -80,12 +85,17 @@ export const getRecommendations = async (
 
   try {
     const data = await withTokenRefresh(async () => {
+      console.log("Making Spotify API call for recommendations...");
       const response = await spotifyApi.getRecommendations({
         seed_genres: genres,
         limit: 50,
       });
+      console.log("Raw Spotify response:", response);
       return response as SpotifyRecommendationsResponse;
     });
+    if (!data.body?.tracks) {
+      throw new Error("Invalid response format from Spotify");
+    }
 
     console.log("Recommendations received:", data.body.tracks.length);
 
@@ -103,10 +113,12 @@ export const getRecommendations = async (
       },
     }));
   } catch (error) {
-    console.error("Error in getRecommendations:", error);
-    throw error instanceof Error
-      ? error
-      : new Error("Failed to get recommendations");
+    console.error("Detailed error in getRecommendations:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
   }
 };
 

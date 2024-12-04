@@ -184,6 +184,12 @@ export default function MusicRecommendations({
   );
 
   const { data: session, status } = useSession();
+  console.log("Session state:", {
+    status,
+    hasSession: !!session,
+    accessToken: session?.accessToken ? "exists" : "missing",
+    userId: session?.user?.id,
+  });
   const spotifySession = session as unknown as SpotifySession;
 
   const genres = React.useMemo(() => {
@@ -198,6 +204,15 @@ export default function MusicRecommendations({
     isLoading,
     refetch: refetchTracks,
   } = useMusic(genres, spotifySession?.accessToken);
+
+  console.log("useMusic state:", {
+    hasAccessToken: !!spotifySession?.accessToken,
+    genres,
+    isLoading,
+    hasError: !!error,
+    errorMessage: error,
+    trackCount: tracks?.length,
+  });
 
   useEffect(() => {
     if (displayTitle?.trim()) {

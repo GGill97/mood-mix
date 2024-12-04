@@ -74,10 +74,40 @@ export function useMusic(
     currentToken: string
   ): Promise<void> => {
     try {
+     
       // Start loading state
       setIsLoading(true);
       setError(null);
+      console.log("useMusic fetchRecommendations:", {
+        genres: currentGenres,
+        hasToken: !!currentToken,
+        tokenLength: currentToken?.length,
+      });
+      const response = await fetch(
+        `/api/music?genres=${encodeURIComponent(currentGenres.join(","))}&accessToken=${encodeURIComponent(currentToken)}`
+      );
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch recommendations');
+      }
+  
+      const tracks = await response.json();
+      
+      if (!tracks || tracks.length === 0) {
+        throw new Error('No tracks received from Spotify');
+      }
+  
+      console.log("Tracks received:", {
+        count: tracks.length,
+        firstTrack: tracks[0]
+      });
+      
+
+  
+
+  
+  
       // Input validation
       if (currentGenres.length === 0) {
         console.warn("No genres provided, using defaults");
@@ -91,6 +121,10 @@ export function useMusic(
         currentToken,
         currentGenres
       );
+      console.log("Recommendations received:", {
+        count: recommendations.length,
+        firstTrack: recommendations[0]
+      });
 
       // Validate response
       if (!recommendations || recommendations.length === 0) {
@@ -103,12 +137,13 @@ export function useMusic(
       }
 
       // Process and store tracks
-      setTracks(recommendations.map(mapTrackData));
+      setTracks(recommendations);
 
       // Reset retry count on success
       retryCount.current = 0;
     } catch (err) {
-      console.error("Error fetching recommendations:", err);
+      console.error("Error in useMusic:", err);
+      
 
       // Implement retry logic
       if (retryCount.current < FETCH_RETRY_LIMIT) {

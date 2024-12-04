@@ -2,6 +2,7 @@ import {
   getRecommendations,
   createPlaylist,
   validateSpotifyUrl,
+  CreatePlaylistResponse,
 } from "@/utils/spotifyApi";
 import { getSession } from "next-auth/react";
 import SpotifyWebApi from "spotify-web-api-node";
@@ -9,9 +10,10 @@ import {
   mockTrack,
   mockRecommendationsResponse,
   mockPlaylistResponse,
+
   mockCreatePlaylistResponse,
-} from "../../__tests__/mocks/spotifyMocks";
-import { mockSpotifySession } from "../../__tests__/mocks/sessionMocks";
+} from "../../mocks/spotifyMocks";
+import { mockSpotifySession } from "../../mocks/sessionMocks";
 
 // Mock next-auth
 jest.mock("next-auth/react", () => ({
